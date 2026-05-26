@@ -24,8 +24,10 @@ export class UsersService {
     firstName: string,
     avatarUrl?: string,
   ): Promise<User> {
-    const usersCount = await this.prisma.user.count();
-    const isFirstUser = usersCount === 0;
+    const adminExists = await this.prisma.user.findFirst({
+      where: { role: Role.ADMIN },
+    });
+    const isFirstAdmin = !adminExists;
 
     return this.prisma.user.create({
       data: {
@@ -33,7 +35,7 @@ export class UsersService {
         email,
         firstName,
         avatarUrl,
-        role: isFirstUser ? Role.ADMIN : Role.CLIENT,
+        role: isFirstAdmin ? Role.ADMIN : Role.CLIENT,
       },
     });
   }
