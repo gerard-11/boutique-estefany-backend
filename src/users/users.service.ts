@@ -39,4 +39,11 @@ export class UsersService {
       },
     });
   }
+
+  async update(id: string, data: Partial<User>): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data,
+    });
+  }
 }
