@@ -18,14 +18,15 @@ enum Level {
 }
 
 model User {
-  id          String  @id @default(uuid())
-  email       String? @unique
-  phoneNumber String? @unique
-  password    String
-  role        Role    @default(CLIENT)
-  firstName   String
-  lastName    String
-  avatarUrl   String?
+  id              String   @id @default(uuid())
+  firebaseUid     String   @unique
+  email           String?  @unique
+  phoneNumber     String?  @unique
+  role            Role     @default(CLIENT)
+  firstName       String
+  lastName        String?
+  avatarUrl       String?
+
 
   // Cliente-specific fields
   level           Level     @default(BRONCE)

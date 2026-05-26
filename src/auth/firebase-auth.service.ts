@@ -10,13 +10,14 @@ export class FirebaseAuthService implements OnModuleInit {
   constructor(private configService: ConfigService) {}
 
   onModuleInit() {
-    const serviceAccountPath = path.join(process.cwd(), 'firebase-adminsdk.json');
-    
+    const serviceAccountPath = path.join(
+      process.cwd(),
+      'firebase-adminsdk.json',
+    );
     this.firebaseApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccountPath),
     });
   }
-
   getAuth() {
     return this.firebaseApp.auth();
   }
