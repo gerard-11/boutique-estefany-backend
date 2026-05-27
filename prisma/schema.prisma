@@ -97,9 +97,10 @@ model Transaction {
   id          String            @id @default(uuid())
   userId      String
   user        User              @relation(fields: [userId], references: [id])
-  type        TransactionType
-  status      TransactionStatus @default(PENDING_APPROVAL)
-  totalAmount Float             @default(0)
+  type          TransactionType
+  status        TransactionStatus @default(PENDING_APPROVAL)
+  totalAmount   Float             @default(0)
+  weeklyPayment Float?
 
   // Para apartados
   expiresAt DateTime? // Un mes despues de crearse
