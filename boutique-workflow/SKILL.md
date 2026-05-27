@@ -43,7 +43,13 @@ La aplicación requiere el consentimiento del cliente (Máquina de estados):
 - No hay problemas de conflicto de admins concurrentes modificando el mismo cliente, ya que **solo hay un Admin**.
 
 ## Próximos Pasos (Para el Agente)
-Cuando se retome el proyecto:
-1. Revisar `backend/prisma/schema.prisma` para ver los modelos ya generados.
-2. Iniciar la configuración de los Módulos de NestJS (AuthModule, TransactionsModule, CatalogModule).
-3. Configurar la integración de Notificaciones Push (Firebase FCM).
+1. Revisar `prisma/schema.prisma` para ver los modelos ya generados.
+2. Iniciar la configuración de los Módulos de NestJS (CatalogModule, TransactionsModule).
+
+## 7. Estado del Proyecto (Bitácora)
+- **[2026-05-26] Infraestructura Base:** Docker con PostgreSQL y Prisma 7 configurados.
+- **[2026-05-26] Autenticación:** Firebase Admin SDK integrado, Auto-registro de usuarios y asignación de ADMIN al primer usuario.
+- **[2026-05-26] Seguridad:** ValidationPipe global activado y DTOs de entrada/salida implementados para el perfil de usuario.
+
+**Próximo paso:** Iniciar el Módulo de Catálogo (Departamentos, Categorías y Productos).
+

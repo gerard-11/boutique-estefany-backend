@@ -8,7 +8,7 @@ export class UserResponseDto {
   level: Level;
   avatarUrl: string | null;
   creditLimit: number;
-  
+
   constructor(partial: Partial<UserResponseDto>) {
     Object.assign(this, partial);
   }
