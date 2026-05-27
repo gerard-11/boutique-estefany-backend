@@ -57,7 +57,6 @@ export class FirebaseAuthGuard implements CanActivate {
           picture: firebaseToken.picture,
         };
       }
-      // ----------------------------
 
       let user: User | null = await this.usersService.findByFirebaseUid(
         decodedToken.uid,
