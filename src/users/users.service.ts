@@ -88,8 +88,8 @@ export class UsersService {
           },
           include: {
             payments: {
-              orderBy: { paymentDate: 'desc' }
-            }
+              orderBy: { paymentDate: 'desc' },
+            },
           },
         },
       },
@@ -111,11 +111,12 @@ export class UsersService {
 
     // 2. Cálculo del Semáforo (Basado en el último pago o creación de crédito)
     let paymentStatus: 'NORMAL' | 'RETRASADO' | 'ATRASADO' = 'NORMAL';
-    
+
     if (totalDebt > 0) {
       const referenceDate = user.lastPaymentDate || user.createdAt;
       const diffInDays = Math.floor(
-        (new Date().getTime() - new Date(referenceDate).getTime()) / (1000 * 3600 * 24)
+        (new Date().getTime() - new Date(referenceDate).getTime()) /
+          (1000 * 3600 * 24),
       );
 
       if (diffInDays > 30) {

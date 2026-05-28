@@ -22,7 +22,10 @@ export class CreateTransactionDto {
 
   @IsArray({ message: 'Los códigos de barras deben enviarse como una lista' })
   @IsString({ each: true, message: 'Cada código de barras debe ser texto' })
-  @IsNotEmpty({ each: true, message: 'El código de barras no puede estar vacío' })
+  @IsNotEmpty({
+    each: true,
+    message: 'El código de barras no puede estar vacío',
+  })
   productBarcodes: string[];
 
   @IsBoolean({ message: 'El campo de aprobación forzada debe ser un booleano' })

@@ -9,7 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { DepartmentsService } from './departments.service';
-import { CreateDepartmentDto, UpdateDepartmentDto } from './dtos/department.dto';
+import {
+  CreateDepartmentDto,
+  UpdateDepartmentDto,
+} from './dtos/department.dto';
 import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';

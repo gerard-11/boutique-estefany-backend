@@ -1,4 +1,11 @@
-import { Controller, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { FirebaseAuthGuard } from './guards/firebase-auth.guard';
 import { UserResponseDto } from '../users/dtos/user-response.dto';
 import { UpdateUserProfileDto } from '../users/dtos/update-user-profile.dto';

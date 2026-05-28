@@ -91,6 +91,8 @@ enum TransactionStatus {
   ACTIVE // Accepted and ongoing (or Layaway/Loan active)
   COMPLETED // Paid in full or Loan returned
   CANCELLED // Layaway expired or Client rejected
+  RETURN_REQUESTED // Client wants to return (New)
+  RETURNED // Admin confirmed return (New)
 }
 
 model Transaction {

@@ -18,7 +18,7 @@ export class UpdateUserProfileDto {
 
   @IsString()
   @IsOptional()
-  @IsPhoneNumber('MX') 
+  @IsPhoneNumber('MX')
   phoneNumber?: string;
 
   @IsString()
