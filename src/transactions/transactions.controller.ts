@@ -14,6 +14,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
+import { ProcessReturnDto } from './dtos/process-return.dto';
 
 @Controller('transactions')
 export class TransactionsController {
@@ -35,8 +36,8 @@ export class TransactionsController {
   @Patch(':id/confirm-return')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  confirmReturn(@Param('id') id: string) {
-    return this.transactionsService.confirmReturn(id);
+  confirmReturn(@Param('id') id: string, @Body() data: ProcessReturnDto) {
+    return this.transactionsService.confirmReturn(id, data);
   }
 
   @Patch(':id/weekly-payment')

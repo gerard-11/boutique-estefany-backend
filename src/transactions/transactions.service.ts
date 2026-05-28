@@ -9,7 +9,9 @@ import {
   TransactionStatus,
   TransactionType,
   MovementType,
+  WalletMovementType,
 } from '@prisma/client';
+import { ProcessReturnDto } from './dtos/process-return.dto';
 
 @Injectable()
 export class TransactionsService {
@@ -80,8 +82,9 @@ export class TransactionsService {
           items: {
             create: products.map((p) => ({
               productId: p.id,
-              quantity: 1, // Por ahora 1 por cada escaneo
+              quantity: 1,
               priceAtTime: p.price,
+              costAtTime: p.cost,
             })),
           },
         },
@@ -100,6 +103,8 @@ export class TransactionsService {
             productId: product.id,
             quantity: -1, // Salida
             type: MovementType.VENTA,
+            costAtTime: product.cost,
+            priceAtTime: product.price,
             reason: `Venta/Apartado ID: ${transaction.id}`,
           },
         });
@@ -136,20 +141,35 @@ export class TransactionsService {
     });
   }
 
-  async confirmReturn(id: string) {
+  async confirmReturn(id: string, data: ProcessReturnDto) {
     return this.prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.findUnique({
         where: { id },
-        include: { items: true },
+        include: { items: true, payments: true },
       });
 
-      if (!transaction) throw new NotFoundException();
+      if (!transaction)
+        throw new NotFoundException('Transacción no encontrada');
 
-      const updatedTx = await tx.transaction.update({
-        where: { id },
-        data: { status: TransactionStatus.RETURNED },
-      });
+      // 1. Calcular el Fondo de Reembolso (Dinero real que el cliente ha pagado)
+      const refundFund = transaction.payments.reduce(
+        (sum, p) => sum + p.amount,
+        0,
+      );
 
+      // 2. Validar que el reparto no exceda el fondo
+      const totalToDistribute =
+        (data.cashAmount || 0) +
+        (data.walletAmount || 0) +
+        (data.debtRepayments?.reduce((sum, r) => sum + r.amount, 0) || 0);
+
+      if (totalToDistribute > refundFund + 0.01) {
+        throw new BadRequestException(
+          `No se puede repartir más dinero ($${totalToDistribute}) del que el cliente ha pagado ($${refundFund})`,
+        );
+      }
+
+      // 3. Devolver stock e historial de inventario
       for (const item of transaction.items) {
         await tx.product.update({
           where: { id: item.productId },
@@ -159,14 +179,69 @@ export class TransactionsService {
         await tx.inventoryMovement.create({
           data: {
             productId: item.productId,
-            quantity: 1, // Entrada
+            quantity: 1,
             type: MovementType.DEVOLUCION_CLIENTE,
-            reason: `Devolución confirmada para Transacción ID: ${id}`,
+            reason: `Devolución confirmada para Transacción ID: ${id}. ${data.notes || ''}`,
           },
         });
       }
 
-      return updatedTx;
+      // 4. Ejecutar el reparto negociado
+
+      // a. Al Monedero
+      if (data.walletAmount && data.walletAmount > 0) {
+        await tx.user.update({
+          where: { id: transaction.userId },
+          data: { balance: { increment: data.walletAmount } },
+        });
+
+        await tx.walletMovement.create({
+          data: {
+            userId: transaction.userId,
+            amount: data.walletAmount,
+            type: WalletMovementType.RETURN_CREDIT,
+            reason: `Saldo por devolución de Transacción ${id}`,
+          },
+        });
+      }
+
+      // b. A otras deudas
+      if (data.debtRepayments) {
+        for (const repayment of data.debtRepayments) {
+          await tx.payment.create({
+            data: {
+              transactionId: repayment.transactionId,
+              amount: repayment.amount,
+              method: 'DEVOLUCION_CREDITO',
+            },
+          });
+
+          // Verificar si la otra deuda se completó
+          const otherTx = await tx.transaction.findUnique({
+            where: { id: repayment.transactionId },
+            include: { payments: true },
+          });
+
+          if (otherTx) {
+            const totalPaid = otherTx.payments.reduce(
+              (sum, p) => sum + p.amount,
+              0,
+            );
+            if (totalPaid >= otherTx.totalAmount) {
+              await tx.transaction.update({
+                where: { id: otherTx.id },
+                data: { status: TransactionStatus.COMPLETED },
+              });
+            }
+          }
+        }
+      }
+
+      // 5. Finalizar la transacción original
+      return tx.transaction.update({
+        where: { id },
+        data: { status: TransactionStatus.RETURNED },
+      });
     });
   }
 

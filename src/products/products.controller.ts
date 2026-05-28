@@ -28,13 +28,11 @@ export class ProductsController {
     return this.productsService.findAll({ categoryId, searchTerm: search });
   }
 
-  // Buscar uno por ID (Público)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
 
-  // Buscar por CÓDIGO DE BARRAS (Público/Admin)
   @Get('barcode/:barcode')
   findByBarcode(@Param('barcode') barcode: string) {
     return this.productsService.findByBarcode(barcode);

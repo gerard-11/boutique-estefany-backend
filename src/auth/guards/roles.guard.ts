@@ -22,8 +22,6 @@ export class RolesGuard implements CanActivate {
     if (!requiredRoles) {
       return true;
     }
-
-    // 2. Extraemos el usuario que el FirebaseAuthGuard inyectó en la request
     const { user } = context.switchToHttp().getRequest<RequestWithUser>();
     if (!user) {
       throw new ForbiddenException('User not found in request');
