@@ -20,7 +20,6 @@ import { Role } from '@prisma/client';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  // Listar productos (Público) con filtros opcionales
   @Get()
   findAll(
     @Query('categoryId') categoryId?: string,
@@ -41,7 +40,6 @@ export class ProductsController {
     return this.productsService.findByBarcode(barcode);
   }
 
-  // SOLO ADMIN puede crear/editar/borrar
   @Post()
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

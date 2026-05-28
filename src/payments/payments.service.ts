@@ -65,7 +65,6 @@ export class PaymentsService {
         where: { id: userId },
         data: { lastPaymentDate: new Date() },
       });
-
       return {
         success: true,
         amountProcessed: amount - remainingMoney,

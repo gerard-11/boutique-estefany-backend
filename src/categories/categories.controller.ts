@@ -20,7 +20,6 @@ import { Role } from '@prisma/client';
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  // GET /categories?departmentId=...
   @Get()
   findAll(@Query('departmentId') departmentId?: string) {
     if (departmentId) {

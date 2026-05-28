@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Patch,
-  Get,
   Body,
   Param,
   UseGuards,
@@ -20,7 +19,6 @@ import type { RequestWithUser } from '../auth/interfaces/request-with-user.inter
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
-  // Crear venta/apartado (Solo Admin)
   @Post()
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -28,14 +26,12 @@ export class TransactionsController {
     return this.transactionsService.create(createDto);
   }
 
-  // Cliente solicita devolución (Autenticado)
   @Patch(':id/request-return')
   @UseGuards(FirebaseAuthGuard)
   requestReturn(@Param('id') id: string, @Request() req: RequestWithUser) {
     return this.transactionsService.requestReturn(id, req.user.id);
   }
 
-  // Admin confirma devolución física (Solo Admin)
   @Patch(':id/confirm-return')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -43,7 +39,6 @@ export class TransactionsController {
     return this.transactionsService.confirmReturn(id);
   }
 
-  // Admin ajusta pago semanal manualmente (Solo Admin)
   @Patch(':id/weekly-payment')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

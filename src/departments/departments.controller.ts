@@ -32,7 +32,6 @@ export class DepartmentsController {
     return this.departmentsService.findOne(id);
   }
 
-  // SOLO ADMIN puede crear
   @Post()
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -40,7 +39,6 @@ export class DepartmentsController {
     return this.departmentsService.create(createDepartmentDto);
   }
 
-  // SOLO ADMIN puede editar
   @Patch(':id')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -51,7 +49,6 @@ export class DepartmentsController {
     return this.departmentsService.update(id, updateDepartmentDto);
   }
 
-  // SOLO ADMIN puede borrar
   @Delete(':id')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
