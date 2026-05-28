@@ -46,7 +46,16 @@ El Administrador tiene la decisión final sobre los estados y montos:
 ## 7. Estado del Proyecto (Bitácora)
 - **[2026-05-26] Infraestructura Base:** Docker, PostgreSQL, Prisma y Firebase Auth integrados.
 - **[2026-05-26] Catálogo:** Departamentos, Categorías y Productos implementados con soporte para tallas y unidades de medida (cm, ml, talla).
-- **[2026-05-27] Seguridad:** Implementado `RolesGuard` y `@Roles` para protección estricta de rutas de administración.
-- **[2026-05-27] Rediseño de Transacciones:** Cambio a enfoque de "Negocio Local" con control manual total del Administrador.
+- [2026-05-27] Seguridad: Implementado `RolesGuard` y `@Roles` para protección de rutas.
+- [2026-05-27] Transacciones: Motor de pagos semanal (+$50 cada $500), reserva optimista de stock y flujo de devoluciones.
+- [2026-05-27] Inventario: Implementada Bitácora de Movimientos (`InventoryMovement`) para trazabilidad total.
+- [2026-05-27] Tareas: Activado Cron Job para alertas diarias de morosidad y vencimientos.
 
-**Próximo paso:** Implementación del Módulo de Transacciones (Fase 1: Usuarios Enriquecidos y Gestión Financiera).
+## 8. Próximos Pasos (Pendientes)
+1. **Implementar Algoritmo de Devolución "Reparto Múltiple":**
+   - El Admin confirma recepción física (+1 stock).
+   - El sistema calcula el "Fondo de Reembolso" (lo ya pagado).
+   - El Admin reparte el fondo entre: Abonar a otra deuda, Meter al Monedero o Reembolsar Efectivo.
+2. **Infraestructura de Monedero:** Añadir `balance` a `User` y tabla `WalletMovement`.
+3. **Módulo de Inventario Manual:** Botones para Devolución a Proveedor y Mermas.
+
