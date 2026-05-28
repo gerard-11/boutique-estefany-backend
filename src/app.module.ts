@@ -11,6 +11,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { PaymentsModule } from './payments/payments.module';
+import { DashboardReportModule } from './dashboard-report/dashboard-report.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PaymentsModule } from './payments/payments.module';
     ProductsModule,
     TransactionsModule,
     PaymentsModule,
+    DashboardReportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

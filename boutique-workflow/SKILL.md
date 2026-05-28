@@ -40,16 +40,16 @@ La aplicación requiere el consentimiento del cliente (Máquina de estados):
 ## 6. Sincronización Offline y Base de Datos
 - El administrador puede trabajar sin internet (Offline).
 - NestJS recibirá las peticiones de sincronización en lote una vez que recupere la conexión.
-- No hay problemas de conflicto de admins concurrentes modificando el mismo cliente, ya que **solo hay un Admin**.
-
-## Próximos Pasos (Para el Agente)
-1. Revisar `prisma/schema.prisma` para ver los modelos ya generados.
-2. Iniciar la configuración de los Módulos de NestJS (CatalogModule, TransactionsModule).
 
 ## 7. Estado del Proyecto (Bitácora)
-- **[2026-05-26] Infraestructura Base:** Docker con PostgreSQL y Prisma 7 configurados.
-- **[2026-05-26] Autenticación:** Firebase Admin SDK integrado, Auto-registro de usuarios y asignación de ADMIN al primer usuario.
-- **[2026-05-26] Seguridad:** ValidationPipe global activado y DTOs de entrada/salida implementados para el perfil de usuario.
+- **[2026-05-26] Infraestructura Base:** Docker, PostgreSQL y Prisma 7 configurados.
+- **[2026-05-26] Autenticación:** Firebase Admin SDK integrado y RolesGuard implementado.
+- **[2026-05-27] Catálogo:** Departamentos, Categorías y Productos con soporte para tallas y marcas.
+- **[2026-05-28] Transacciones & Wallet:** Implementado Monedero digital y Algoritmo de Reparto Múltiple para devoluciones.
+- **[2026-05-28] Finanzas:** Infraestructura de Costos (`costAtTime`) y trazabilidad completa en bitácora de movimientos para cálculo de Capital.
 
-**Próximo paso:** Iniciar el Módulo de Catálogo (Departamentos, Categorías y Productos).
-
+## 8. Próximos Pasos (Pendientes)
+1. **Módulo DashboardReport:** Centralizar cálculos de Capital Total, Mermas y "Dinero Volando".
+2. **Gestión de Niveles de Cliente:** Endpoints para cambio manual de nivel con notificaciones.
+3. **Módulo de Pedidos a Domicilio:** Flujo completo de `DeliveryRequest`.
+4. **Optimización de Dashboard:** Implementar estrategia de cache para cálculos financieros.
