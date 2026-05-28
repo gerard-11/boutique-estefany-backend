@@ -5,7 +5,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTransactionDto } from './dtos/create-transaction.dto';
-import { TransactionStatus, TransactionType } from '@prisma/client';
+import {
+  TransactionStatus,
+  TransactionType,
+  MovementType,
+} from '@prisma/client';
 
 @Injectable()
 export class TransactionsService {
@@ -60,6 +64,7 @@ export class TransactionsService {
           ? this.calculateWeeklyPayment(totalAmount)
           : null;
 
+      // 4. Crear la Transacción principal
       const transaction = await tx.transaction.create({
         data: {
           userId,
@@ -80,12 +85,23 @@ export class TransactionsService {
             })),
           },
         },
-        include: { items: { include: { product: true } } },
       });
+
       for (const product of products) {
+        // Restar stock
         await tx.product.update({
           where: { id: product.id },
           data: { stock: { decrement: 1 } },
+        });
+
+        // Anotar en la bitácora
+        await tx.inventoryMovement.create({
+          data: {
+            productId: product.id,
+            quantity: -1, // Salida
+            type: MovementType.VENTA,
+            reason: `Venta/Apartado ID: ${transaction.id}`,
+          },
         });
       }
 
@@ -139,13 +155,21 @@ export class TransactionsService {
           where: { id: item.productId },
           data: { stock: { increment: 1 } },
         });
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId: item.productId,
+            quantity: 1, // Entrada
+            type: MovementType.DEVOLUCION_CLIENTE,
+            reason: `Devolución confirmada para Transacción ID: ${id}`,
+          },
+        });
       }
 
       return updatedTx;
     });
   }
 
-  // --- AJUSTES MANUALES ADMIN ---
   async updateWeeklyPayment(id: string, newAmount: number) {
     return this.prisma.transaction.update({
       where: { id },

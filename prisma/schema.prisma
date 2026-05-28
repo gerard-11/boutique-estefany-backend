@@ -73,10 +73,29 @@ model Product {
   category    Category @relation(fields: [categoryId], references: [id])
   imageUrl    String?
 
-  transactionItems TransactionItem[]
+  transactionItems   TransactionItem[]
+  inventoryMovements InventoryMovement[] // Relación con bitácora
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum MovementType {
+  VENTA
+  DEVOLUCION_CLIENTE
+  DEVOLUCION_PROVEEDOR
+  MERMA
+  AJUSTE_MANUAL
+}
+
+model InventoryMovement {
+  id        String       @id @default(uuid())
+  productId String
+  product   Product      @relation(fields: [productId], references: [id])
+  quantity  Int // Positivo para entradas, Negativo para salidas
+  type      MovementType
+  reason    String? // Nota opcional del Admin
+  createdAt DateTime     @default(now())
 }
 
 enum TransactionType {
