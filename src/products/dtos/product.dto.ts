@@ -54,6 +54,11 @@ export class CreateProductDto {
   @Min(0)
   price: number;
 
+  @IsNumber({}, { message: 'El costo debe ser un número' })
+  @IsOptional()
+  @Min(0)
+  cost?: number;
+
   @IsUUID('4', { message: 'El ID de la categoría debe ser un UUID válido' })
   @IsNotEmpty({ message: 'La categoría es obligatoria' })
   categoryId: string;

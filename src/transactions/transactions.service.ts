@@ -66,7 +66,6 @@ export class TransactionsService {
           ? this.calculateWeeklyPayment(totalAmount)
           : null;
 
-      // 4. Crear la Transacción principal
       const transaction = await tx.transaction.create({
         data: {
           userId,
