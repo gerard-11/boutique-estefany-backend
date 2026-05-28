@@ -3,9 +3,11 @@ import {
   IsBoolean,
   IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Min,
 } from 'class-validator';
 import { TransactionType } from '@prisma/client';
 
@@ -31,4 +33,9 @@ export class CreateTransactionDto {
   @IsBoolean({ message: 'El campo de aprobación forzada debe ser un booleano' })
   @IsOptional()
   forceApproval?: boolean;
+
+  @IsNumber({}, { message: 'El porcentaje de descuento debe ser un número' })
+  @Min(0)
+  @IsOptional()
+  discountPercentage?: number;
 }

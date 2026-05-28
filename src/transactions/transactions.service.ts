@@ -11,7 +11,6 @@ import { TransactionStatus, TransactionType } from '@prisma/client';
 export class TransactionsService {
   constructor(private prisma: PrismaService) {}
 
-  // --- MOTOR DE CÁLCULO DE PAGO SEMANAL ---
   private calculateWeeklyPayment(total: number): number {
     if (total <= 1000) return 200;
     const extraBlocks = Math.ceil((total - 1000) / 500);
@@ -40,8 +39,9 @@ export class TransactionsService {
         }
       }
 
-      // 2. Calcular el total
-      const totalAmount = products.reduce((sum, p) => sum + p.price, 0);
+      const originalAmount = products.reduce((sum, p) => sum + p.price, 0);
+      const discountPercentage = data.discountPercentage || 0;
+      const totalAmount = originalAmount * (1 - discountPercentage / 100);
 
       let status: TransactionStatus = TransactionStatus.PENDING_APPROVAL;
       if (type === TransactionType.CONTADO)
@@ -60,12 +60,13 @@ export class TransactionsService {
           ? this.calculateWeeklyPayment(totalAmount)
           : null;
 
-      // 4. Crear la Transacción principal
       const transaction = await tx.transaction.create({
         data: {
           userId,
           type,
           status,
+          originalAmount,
+          discountPercentage,
           totalAmount,
           weeklyPayment,
           ...(type === TransactionType.APARTADO
@@ -128,13 +129,11 @@ export class TransactionsService {
 
       if (!transaction) throw new NotFoundException();
 
-      // 1. Cambiar estado
       const updatedTx = await tx.transaction.update({
         where: { id },
         data: { status: TransactionStatus.RETURNED },
       });
 
-      // 2. REGRESAR STOCK (+1)
       for (const item of transaction.items) {
         await tx.product.update({
           where: { id: item.productId },
