@@ -51,8 +51,8 @@ export class ProductsService {
     });
   }
 
-  async findByBarcode(barcode: string): Promise<Product | null> {
-    return this.prisma.product.findUnique({
+  async findByBarcode(barcode: string): Promise<any | null> {
+    const product = await this.prisma.product.findUnique({
       where: { barcode },
       include: {
         category: {
@@ -60,8 +60,36 @@ export class ProductsService {
             department: true,
           },
         },
+        deliveryRequestItems: {
+          where: {
+            deliveryRequest: {
+              status: 'PENDING',
+            },
+          },
+          include: {
+            deliveryRequest: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
       },
     });
+
+    if (!product) return null;
+
+    // Mapear alertas de reserva suave
+    const pendingDeliveries = product.deliveryRequestItems.map((item) => ({
+      requestId: item.deliveryRequestId,
+      clientName: item.deliveryRequest.user.firstName,
+      requestDate: item.deliveryRequest.createdAt,
+    }));
+
+    return {
+      ...product,
+      softReservationAlert: pendingDeliveries.length > 0 ? pendingDeliveries : null,
+    };
   }
 
   async create(data: CreateProductDto): Promise<Product> {
