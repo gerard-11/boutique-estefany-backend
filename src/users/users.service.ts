@@ -51,13 +51,26 @@ export class UsersService {
   // --- LÓGICA FINANCIERA Y GESTIÓN DE CLIENTES ---
 
   // Listar todos los clientes con filtros (Solo Admin)
-  async findAllClients(filters?: { level?: Level }): Promise<User[]> {
+  async findAllClients(filters?: {
+    level?: Level;
+    searchTerm?: string;
+  }): Promise<User[]> {
+    const { level, searchTerm } = filters || {};
     return this.prisma.user.findMany({
       where: {
         role: Role.CLIENT,
-        ...(filters?.level ? { level: filters.level } : {}),
+        ...(level ? { level } : {}),
+        ...(searchTerm
+          ? {
+              OR: [
+                { firstName: { contains: searchTerm, mode: 'insensitive' } },
+                { lastName: { contains: searchTerm, mode: 'insensitive' } },
+                { email: { contains: searchTerm, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
       },
-      orderBy: { lastPaymentDate: 'asc' }, // Por defecto, los que llevan más tiempo sin pagar arriba
+      orderBy: { lastPaymentDate: 'asc' },
     });
   }
 
