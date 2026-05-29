@@ -66,10 +66,21 @@ export class UsersService {
     id: string,
     data: UpdateUserFinancialDto,
   ): Promise<User> {
-    return this.prisma.user.update({
+    const { reason, ...updateData } = data;
+    const user = await this.prisma.user.update({
       where: { id },
-      data,
+      data: updateData,
     });
+
+    if (data.level) {
+      // LOGICA DE NOTIFICACIÓN (Placeholder para FCM)
+      console.log(
+        `[NOTIFICACIÓN] El usuario ${user.firstName} ha subido a nivel ${user.level}. Razón: ${reason || 'Cumplimiento de pagos'}`,
+      );
+      // Aquí dispararíamos Firebase Cloud Messaging en el futuro
+    }
+
+    return user;
   }
 
   // El "Objeto Enriquecido": Calcula la deuda y el semáforo de pago al vuelo

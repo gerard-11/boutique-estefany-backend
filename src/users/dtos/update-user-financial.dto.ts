@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, Min, IsString } from 'class-validator';
 import { Level } from '@prisma/client';
 
 export class UpdateUserFinancialDto {
@@ -10,4 +10,8 @@ export class UpdateUserFinancialDto {
   @Min(0, { message: 'El límite de crédito no puede ser negativo' })
   @IsOptional()
   creditLimit?: number;
+
+  @IsString()
+  @IsOptional()
+  reason?: string;
 }

@@ -37,9 +37,21 @@ model User {
   transactions     Transaction[]
   deliveryRequests DeliveryRequest[]
   walletMovements  WalletMovement[]
+  wishlistItems    Wishlist[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
 }
 
 enum WalletMovementType {
@@ -95,6 +107,8 @@ model Product {
 
   transactionItems   TransactionItem[]
   inventoryMovements InventoryMovement[] // Relación con bitácora
+  deliveryRequestItems DeliveryRequestItem[]
+  wishlistItems      Wishlist[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -193,6 +207,17 @@ model DeliveryRequest {
   status  DeliveryStatus @default(PENDING)
   notes   String?
 
+  items   DeliveryRequestItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model DeliveryRequestItem {
+  id                String          @id @default(uuid())
+  deliveryRequestId String
+  deliveryRequest   DeliveryRequest @relation(fields: [deliveryRequestId], references: [id])
+  productId         String
+  product           Product         @relation(fields: [productId], references: [id])
+  quantity          Int             @default(1)
 }
