@@ -14,6 +14,13 @@ async function bootstrap() {
     }),
   );
 
+  // Configuración de CORS
+  app.enableCors({
+    origin: true, // En desarrollo permite cualquier origen, o puedes especificar una lista
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
+
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
