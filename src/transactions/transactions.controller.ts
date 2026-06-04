@@ -40,6 +40,13 @@ export class TransactionsController {
     return this.transactionsService.confirmReturn(id, data);
   }
 
+  @Post('barcode/:barcode/return')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  quickReturn(@Param('barcode') barcode: string) {
+    return this.transactionsService.quickReturnByBarcode(barcode);
+  }
+
   @Patch(':id/weekly-payment')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

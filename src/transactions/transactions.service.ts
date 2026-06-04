@@ -244,6 +244,64 @@ export class TransactionsService {
     });
   }
 
+  async quickReturnByBarcode(barcode: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Encontrar el producto y su transacción de préstamo/apartado activa
+      const product = await tx.product.findUnique({
+        where: { barcode },
+        include: {
+          transactionItems: {
+            where: {
+              transaction: {
+                status: TransactionStatus.ACTIVE,
+                type: { in: [TransactionType.PRESTAMO, TransactionType.APARTADO] },
+              },
+            },
+            include: {
+              transaction: true,
+            },
+          },
+        },
+      });
+
+      if (!product) throw new NotFoundException('Producto no encontrado');
+      
+      const activeItem = product.transactionItems[0];
+      if (!activeItem) {
+        throw new BadRequestException('Esta prenda no tiene un préstamo o apartado activo');
+      }
+
+      const transaction = activeItem.transaction;
+
+      // 2. Devolver stock
+      await tx.product.update({
+        where: { id: product.id },
+        data: { stock: { increment: 1 } },
+      });
+
+      // 3. Registrar movimiento
+      await tx.inventoryMovement.create({
+        data: {
+          productId: product.id,
+          quantity: 1,
+          type: MovementType.DEVOLUCION_CLIENTE,
+          reason: `Devolución rápida por escaneo. Tx: ${transaction.id}`,
+        },
+      });
+
+      // 4. Finalizar transacción
+      // Si es préstamo, se marca como completado. Si es apartado, se cancela/libera stock.
+      const newStatus = transaction.type === TransactionType.PRESTAMO 
+        ? TransactionStatus.COMPLETED 
+        : TransactionStatus.CANCELLED;
+
+      return tx.transaction.update({
+        where: { id: transaction.id },
+        data: { status: newStatus },
+      });
+    });
+  }
+
   async updateWeeklyPayment(id: string, newAmount: number) {
     return this.prisma.transaction.update({
       where: { id },

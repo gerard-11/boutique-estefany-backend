@@ -74,28 +74,106 @@ export class ProductsService {
             },
           },
         },
+        transactionItems: {
+          where: {
+            transaction: {
+              status: 'ACTIVE',
+            },
+          },
+          include: {
+            transaction: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
       },
     });
 
     if (!product) return null;
 
-    // Mapear alertas de reserva suave
+    // Mapear alertas de reserva suave (Pedidos App)
     const pendingDeliveries = product.deliveryRequestItems.map((item) => ({
       requestId: item.deliveryRequestId,
       clientName: item.deliveryRequest.user.firstName,
       requestDate: item.deliveryRequest.createdAt,
     }));
 
+    // Detectar si está en préstamo o apartado activo
+    const activeTransaction = product.transactionItems[0]?.transaction || null;
+    
+    let currentStatus = 'AVAILABLE';
+    let assignedTo = null;
+
+    if (activeTransaction) {
+      currentStatus = activeTransaction.type; // PRESTAMO o APARTADO
+      assignedTo = {
+        id: activeTransaction.user.id,
+        name: `${activeTransaction.user.firstName} ${activeTransaction.user.lastName || ''}`.trim(),
+        transactionId: activeTransaction.id,
+      };
+    } else if (product.stock <= 0) {
+      currentStatus = 'OUT_OF_STOCK';
+    }
+
     return {
       ...product,
       softReservationAlert: pendingDeliveries.length > 0 ? pendingDeliveries : null,
+      inventoryStatus: {
+        status: currentStatus,
+        assignedTo,
+        canSell: product.stock > 0,
+        canLoan: product.stock > 0 && currentStatus === 'AVAILABLE',
+        canApart: product.stock > 0 && currentStatus === 'AVAILABLE',
+      },
     };
   }
 
   async create(data: CreateProductDto): Promise<Product> {
     return this.prisma.$transaction(async (tx) => {
+      let categoryId = data.categoryId;
+
+      if (!categoryId) {
+        if (!data.categoryName || !data.departmentName) {
+          throw new Error(
+            'Debe proporcionar un categoryId o ambos: categoryName y departmentName',
+          );
+        }
+
+        const deptName = data.departmentName.trim();
+        const department = await tx.department.upsert({
+          where: { name: deptName },
+          update: {},
+          create: { name: deptName },
+        });
+
+        // 2. Buscar o crear Categoría (Normalizado a Capital Case)
+        const catName = data.categoryName.trim();
+        const category = await tx.category.upsert({
+          where: {
+            name_departmentId: {
+              name: catName,
+              departmentId: department.id,
+            },
+          },
+          update: {},
+          create: {
+            name: catName,
+            departmentId: department.id,
+          },
+        });
+
+        categoryId = category.id;
+      }
+
+      // 3. Crear el producto
+      const { categoryName, departmentName, ...productData } = data;
       const product = await tx.product.create({
-        data,
+        data: {
+          ...productData,
+          categoryId: categoryId as string,
+        },
       });
 
       if (data.stock && data.stock > 0) {
@@ -152,12 +230,9 @@ export class ProductsService {
   }
 
   async update(id: string, data: UpdateProductDto): Promise<Product> {
-    // El stock no se debe actualizar directamente aquí para no perder trazabilidad
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { stock, ...updateData } = data;
     return this.prisma.product.update({
       where: { id },
-      data: updateData,
+      data,
     });
   }
 

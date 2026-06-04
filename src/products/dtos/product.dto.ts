@@ -60,8 +60,18 @@ export class CreateProductDto {
   cost?: number;
 
   @IsUUID('4', { message: 'El ID de la categoría debe ser un UUID válido' })
-  @IsNotEmpty({ message: 'La categoría es obligatoria' })
-  categoryId: string;
+  @IsOptional()
+  categoryId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  categoryName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  departmentName?: string;
 
   @IsString()
   @IsOptional()
@@ -69,4 +79,58 @@ export class CreateProductDto {
   imageUrl?: string;
 }
 
-export class UpdateProductDto extends CreateProductDto {}
+export class UpdateProductDto {
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  barcode?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  color?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  size?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  sizeUnit?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  brand?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  price?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  cost?: number;
+
+  @IsUUID('4')
+  @IsOptional()
+  categoryId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  imageUrl?: string;
+}
