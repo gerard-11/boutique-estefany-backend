@@ -104,7 +104,7 @@ export class ProductsService {
     const activeTransaction = product.transactionItems[0]?.transaction || null;
     
     let currentStatus = 'AVAILABLE';
-    let assignedTo = null;
+    let assignedTo: { id: string; name: string; transactionId: string } | null = null;
 
     if (activeTransaction) {
       currentStatus = activeTransaction.type; // PRESTAMO o APARTADO
