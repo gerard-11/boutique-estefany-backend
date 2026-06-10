@@ -73,6 +73,10 @@ export class CreateProductDto {
   @MaxLength(100)
   departmentName?: string;
 
+  @IsUUID('4', { message: 'El ID del departamento debe ser un UUID válido' })
+  @IsOptional()
+  departmentId?: string;
+
   @IsString()
   @IsOptional()
   @MaxLength(200)

@@ -135,18 +135,30 @@ export class ProductsService {
       let categoryId = data.categoryId;
 
       if (!categoryId) {
-        if (!data.categoryName || !data.departmentName) {
+        if (
+          !data.categoryName ||
+          (!data.departmentName && !data.departmentId)
+        ) {
           throw new Error(
-            'Debe proporcionar un categoryId o ambos: categoryName y departmentName',
+            'Debe proporcionar un categoryId o categoryName junto con departmentName o departmentId',
           );
         }
 
-        const deptName = data.departmentName.trim();
-        const department = await tx.department.upsert({
-          where: { name: deptName },
-          update: {},
-          create: { name: deptName },
-        });
+        let deptId = data.departmentId;
+
+        if (!deptId && data.departmentName) {
+          const deptName = data.departmentName.trim();
+          const department = await tx.department.upsert({
+            where: { name: deptName },
+            update: {},
+            create: { name: deptName },
+          });
+          deptId = department.id;
+        }
+
+        if (!deptId) {
+          throw new Error('No se pudo determinar el departamento');
+        }
 
         // 2. Buscar o crear Categoría (Normalizado a Capital Case)
         const catName = data.categoryName.trim();
@@ -154,13 +166,13 @@ export class ProductsService {
           where: {
             name_departmentId: {
               name: catName,
-              departmentId: department.id,
+              departmentId: deptId,
             },
           },
           update: {},
           create: {
             name: catName,
-            departmentId: department.id,
+            departmentId: deptId,
           },
         });
 
@@ -168,7 +180,12 @@ export class ProductsService {
       }
 
       // 3. Crear el producto
-      const { categoryName, departmentName, ...productData } = data;
+      const {
+        categoryName,
+        departmentName,
+        departmentId,
+        ...productData
+      } = data;
       const product = await tx.product.create({
         data: {
           ...productData,
