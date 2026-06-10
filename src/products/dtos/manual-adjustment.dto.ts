@@ -3,13 +3,13 @@ import { MovementType } from '@prisma/client';
 
 export class ManualAdjustmentDto {
   @IsNumber()
-  quantity: number;
+  quantity!: number;
 
   @IsEnum(MovementType)
-  type: MovementType;
+  type!: MovementType;
 
   @IsString()
-  reason: string;
+  reason!: string;
 
   @IsNumber()
   @IsOptional()
