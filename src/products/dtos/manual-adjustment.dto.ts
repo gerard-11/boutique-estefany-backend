@@ -21,3 +21,4 @@ export class ManualAdjustmentDto {
   @Min(0)
   newPrice?: number;
 }
+
