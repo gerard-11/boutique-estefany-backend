@@ -1,19 +1,81 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dtos/product.dto';
-import { Product, MovementType } from '@prisma/client';
+import { Product, MovementType, TransactionStatus } from '@prisma/client';
 
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
+  private async enrichProductData(product: any) {
+    if (!product) return null;
+
+    // 1. Detectar transacciones activas (Préstamos, Apartados, Créditos en curso)
+    const activeTransaction = product.transactionItems.find((ti: any) =>
+      [TransactionStatus.ACTIVE, TransactionStatus.PENDING_APPROVAL].includes(
+        ti.transaction.status,
+      ),
+    )?.transaction || null;
+
+    // 2. Si no hay transacción activa pero stock es 0, buscar la última venta completada
+    const lastTransaction =
+      !activeTransaction && product.stock === 0
+        ? await this.prisma.transactionItem
+            .findFirst({
+              where: { productId: product.id },
+              include: { transaction: { include: { user: true } } },
+              orderBy: { transaction: { createdAt: 'desc' } },
+            })
+            .then((ti) => ti?.transaction)
+        : null;
+
+    let currentStatus = 'AVAILABLE';
+    let assignedTo: {
+      id: string;
+      name: string;
+      transactionId: string;
+      status: string;
+    } | null = null;
+
+    if (activeTransaction) {
+      currentStatus = activeTransaction.type; // PRESTAMO, APARTADO, CREDITO_SEMANAL
+      assignedTo = {
+        id: activeTransaction.user.id,
+        name: `${activeTransaction.user.firstName} ${activeTransaction.user.lastName || ''}`.trim(),
+        transactionId: activeTransaction.id,
+        status: activeTransaction.status,
+      };
+    } else if (lastTransaction) {
+      currentStatus = 'SOLD';
+      assignedTo = {
+        id: lastTransaction.user.id,
+        name: `${lastTransaction.user.firstName} ${lastTransaction.user.lastName || ''}`.trim(),
+        transactionId: lastTransaction.id,
+        status: 'COMPLETED',
+      };
+    } else if (product.stock <= 0) {
+      currentStatus = 'UNAVAILABLE';
+    }
+
+    return {
+      ...product,
+      inventoryStatus: {
+        status: currentStatus,
+        assignedTo,
+        canSell: product.stock > 0 && !activeTransaction,
+        canLoan: product.stock > 0 && currentStatus === 'AVAILABLE',
+        canApart: product.stock > 0 && currentStatus === 'AVAILABLE',
+      },
+    };
+  }
+
   async findAll(filters?: {
     categoryId?: string;
     searchTerm?: string;
-  }): Promise<Product[]> {
+  }): Promise<any[]> {
     const { categoryId, searchTerm } = filters || {};
 
-    return this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where: {
         AND: [
           categoryId ? { categoryId } : {},
@@ -30,104 +92,63 @@ export class ProductsService {
       },
       include: {
         category: {
+          include: { department: true },
+        },
+        transactionItems: {
           include: {
-            department: true,
+            transaction: { include: { user: true } },
           },
         },
       },
+    });
+
+    const enriched = await Promise.all(
+      products.map((p) => this.enrichProductData(p)),
+    );
+
+    return enriched.sort((a, b) => {
+      const aAvail = a.inventoryStatus.canSell ? 1 : 0;
+      const bAvail = b.inventoryStatus.canSell ? 1 : 0;
+      return bAvail - aAvail;
     });
   }
 
-  async findOne(id: string): Promise<Product | null> {
-    return this.prisma.product.findUnique({
+  async findOne(id: string): Promise<any | null> {
+    const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
-        category: {
+        category: { include: { department: true } },
+        transactionItems: {
           include: {
-            department: true,
+            transaction: { include: { user: true } },
           },
         },
       },
     });
+
+    if (!product) throw new NotFoundException('Producto no encontrado');
+    return this.enrichProductData(product);
   }
 
   async findByBarcode(barcode: string): Promise<any | null> {
     const product = await this.prisma.product.findUnique({
       where: { barcode },
       include: {
-        category: {
-          include: {
-            department: true,
-          },
-        },
+        category: { include: { department: true } },
         deliveryRequestItems: {
-          where: {
-            deliveryRequest: {
-              status: 'PENDING',
-            },
-          },
-          include: {
-            deliveryRequest: {
-              include: {
-                user: true,
-              },
-            },
-          },
+          where: { deliveryRequest: { status: 'PENDING' } },
+          include: { deliveryRequest: { include: { user: true } } },
         },
         transactionItems: {
-          where: {
-            transaction: {
-              status: 'ACTIVE',
-            },
-          },
           include: {
-            transaction: {
-              include: {
-                user: true,
-              },
-            },
+            transaction: { include: { user: true } },
           },
         },
       },
     });
 
     if (!product) return null;
-
-    // Mapear alertas de reserva suave (Pedidos App)
-    const pendingDeliveries = product.deliveryRequestItems.map((item) => ({
-      requestId: item.deliveryRequestId,
-      clientName: item.deliveryRequest.user.firstName,
-      requestDate: item.deliveryRequest.createdAt,
-    }));
-
-    // Detectar si está en préstamo o apartado activo
-    const activeTransaction = product.transactionItems[0]?.transaction || null;
-    
-    let currentStatus = 'AVAILABLE';
-    let assignedTo: { id: string; name: string; transactionId: string } | null = null;
-
-    if (activeTransaction) {
-      currentStatus = activeTransaction.type; // PRESTAMO o APARTADO
-      assignedTo = {
-        id: activeTransaction.user.id,
-        name: `${activeTransaction.user.firstName} ${activeTransaction.user.lastName || ''}`.trim(),
-        transactionId: activeTransaction.id,
-      };
-    } else if (product.stock <= 0) {
-      currentStatus = 'OUT_OF_STOCK';
-    }
-
-    return {
-      ...product,
-      softReservationAlert: pendingDeliveries.length > 0 ? pendingDeliveries : null,
-      inventoryStatus: {
-        status: currentStatus,
-        assignedTo,
-        canSell: product.stock > 0,
-        canLoan: product.stock > 0 && currentStatus === 'AVAILABLE',
-        canApart: product.stock > 0 && currentStatus === 'AVAILABLE',
-      },
-    };
+    return this.enrichProductData(product);
   }
 
   async create(data: CreateProductDto): Promise<Product> {
@@ -160,7 +181,6 @@ export class ProductsService {
           throw new Error('No se pudo determinar el departamento');
         }
 
-        // 2. Buscar o crear Categoría (Normalizado a Capital Case)
         const catName = data.categoryName.trim();
         const category = await tx.category.upsert({
           where: {
@@ -179,13 +199,7 @@ export class ProductsService {
         categoryId = category.id;
       }
 
-      // 3. Crear el producto
-      const {
-        categoryName,
-        departmentName,
-        departmentId,
-        ...productData
-      } = data;
+      const { categoryName, departmentName, departmentId, ...productData } = data;
       const product = await tx.product.create({
         data: {
           ...productData,

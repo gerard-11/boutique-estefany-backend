@@ -43,13 +43,19 @@ export class WishlistService {
   }
 
   async findMyWishlist(userId: string) {
-    return this.prisma.wishlist.findMany({
+    const items = await this.prisma.wishlist.findMany({
       where: { userId },
       include: {
         product: true,
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return items.map((item) => ({
+      ...item.product,
+      wishlistId: item.id,
+      addedAt: item.createdAt,
+    }));
   }
 
   // Lógica de Prioridad para el Admin

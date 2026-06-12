@@ -30,8 +30,7 @@ export class UsersController {
   @Get('clients/:id/profile')
   @UseGuards(FirebaseAuthGuard)
   async getProfile(@Param('id') id: string) {
-    // Nota: Aquí se podría añadir una validación para que el cliente solo vea su propio perfil
-    // pero el Admin pueda ver cualquiera. Por ahora lo dejamos abierto a usuarios autenticados.
+   
     return this.usersService.getEnrichedProfile(id);
   }
 

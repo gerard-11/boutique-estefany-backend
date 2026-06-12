@@ -35,6 +35,13 @@ export class WishlistController {
     return this.wishlistService.findMyWishlist(req.user.id);
   }
 
+  @Get('client/:userId')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  findClientWishlist(@Param('userId') userId: string) {
+    return this.wishlistService.findMyWishlist(userId);
+  }
+
   @Delete(':productId')
   @UseGuards(FirebaseAuthGuard)
   removeFromWishlist(
