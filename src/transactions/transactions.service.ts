@@ -24,14 +24,38 @@ export class TransactionsService {
   }
 
   async create(data: CreateTransactionDto) {
-    const { userId, type, productBarcodes, forceApproval } = data;
+    const { userId, type, forceApproval } = data;
+    const productBarcodes = data.productBarcodes ?? [];
+    const productIds = data.productIds ?? [];
+
+    if (productBarcodes.length === 0 && productIds.length === 0) {
+      throw new BadRequestException(
+        'Debe enviar al menos un código de barras o ID de producto',
+      );
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({
-        where: { barcode: { in: productBarcodes } },
+        where: {
+          OR: [
+            ...(productBarcodes.length
+              ? [{ barcode: { in: productBarcodes } }]
+              : []),
+            ...(productIds.length ? [{ id: { in: productIds } }] : []),
+          ],
+        },
       });
 
-      if (products.length !== productBarcodes.length) {
+      const foundBarcodes = new Set(products.map((product) => product.barcode));
+      const foundProductIds = new Set(products.map((product) => product.id));
+      const missingBarcodes = productBarcodes.filter(
+        (barcode) => !foundBarcodes.has(barcode),
+      );
+      const missingProductIds = productIds.filter(
+        (productId) => !foundProductIds.has(productId),
+      );
+
+      if (missingBarcodes.length > 0 || missingProductIds.length > 0) {
         throw new NotFoundException(
           'Uno o más productos no fueron encontrados',
         );

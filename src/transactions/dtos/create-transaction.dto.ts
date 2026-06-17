@@ -28,7 +28,20 @@ export class CreateTransactionDto {
     each: true,
     message: 'El código de barras no puede estar vacío',
   })
-  productBarcodes: string[];
+  @IsOptional()
+  productBarcodes?: string[];
+
+  @IsArray({ message: 'Los IDs de productos deben enviarse como una lista' })
+  @IsUUID('4', {
+    each: true,
+    message: 'Cada ID de producto debe ser un UUID válido',
+  })
+  @IsNotEmpty({
+    each: true,
+    message: 'El ID de producto no puede estar vacío',
+  })
+  @IsOptional()
+  productIds?: string[];
 
   @IsBoolean({ message: 'El campo de aprobación forzada debe ser un booleano' })
   @IsOptional()
