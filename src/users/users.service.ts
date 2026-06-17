@@ -114,6 +114,11 @@ export class UsersService {
             payments: {
               orderBy: { paymentDate: 'desc' },
             },
+            items: {
+              include: {
+                product: true,
+              },
+            },
           },
         },
       },
