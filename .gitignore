@@ -36,8 +36,6 @@ pnpm-debug.log*
 # Docker
 docker-compose.override.yml
 
-# Prisma
-/prisma/migrations
 
 # Firebase
 *-adminsdk.json

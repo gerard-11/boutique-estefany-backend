@@ -56,7 +56,7 @@ export class TasksService {
 
     const expiredTransactions = await this.prisma.transaction.findMany({
       where: {
-        type: TransactionType.APARTADO,
+        type: TransactionType.LAYAWAY,
         status: TransactionStatus.ACTIVE,
         expiresAt: { lt: now },
       },

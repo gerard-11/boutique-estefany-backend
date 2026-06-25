@@ -17,7 +17,7 @@ export class CreateTransactionDto {
   userId: string;
 
   @IsEnum(TransactionType, {
-    message: 'El tipo debe ser CONTADO, CREDITO_SEMANAL, APARTADO o PRESTAMO',
+    message: 'El tipo debe ser CASH, WEEKLY_CREDIT, LAYAWAY o LOAN',
   })
   @IsNotEmpty({ message: 'El tipo de transacción es obligatorio' })
   type: TransactionType;

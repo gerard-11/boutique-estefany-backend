@@ -74,19 +74,19 @@ export class TransactionsService {
       const totalAmount = originalAmount * (1 - discountPercentage / 100);
 
       let status: TransactionStatus = TransactionStatus.PENDING_APPROVAL;
-      if (type === TransactionType.CONTADO)
+      if (type === TransactionType.CASH)
         status = TransactionStatus.COMPLETED;
       if (
         forceApproval ||
-        type === TransactionType.APARTADO ||
-        type === TransactionType.PRESTAMO
+        type === TransactionType.LAYAWAY ||
+        type === TransactionType.LOAN
       ) {
         status = TransactionStatus.ACTIVE;
       }
 
       const weeklyPayment =
-        type === TransactionType.CREDITO_SEMANAL ||
-        type === TransactionType.APARTADO
+        type === TransactionType.WEEKLY_CREDIT ||
+        type === TransactionType.LAYAWAY
           ? this.calculateWeeklyPayment(totalAmount)
           : null;
 
@@ -99,7 +99,7 @@ export class TransactionsService {
           discountPercentage,
           totalAmount,
           weeklyPayment,
-          ...(type === TransactionType.APARTADO
+          ...(type === TransactionType.LAYAWAY
             ? { expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
             : {}),
           items: {
@@ -128,7 +128,7 @@ export class TransactionsService {
             type: MovementType.VENTA,
             costAtTime: product.cost,
             priceAtTime: product.price,
-            reason: `Venta/Apartado ID: ${transaction.id}`,
+            reason: `Transaction ID: ${transaction.id}`,
           },
         });
       }
@@ -278,7 +278,7 @@ export class TransactionsService {
             where: {
               transaction: {
                 status: TransactionStatus.ACTIVE,
-                type: { in: [TransactionType.PRESTAMO, TransactionType.APARTADO] },
+                type: { in: [TransactionType.LOAN, TransactionType.LAYAWAY] },
               },
             },
             include: {
@@ -314,8 +314,8 @@ export class TransactionsService {
       });
 
       // 4. Finalizar transacción
-      // Si es préstamo, se marca como completado. Si es apartado, se cancela/libera stock.
-      const newStatus = transaction.type === TransactionType.PRESTAMO 
+      // Si es loan, se marca como completado. Si es layaway, se cancela/libera stock.
+      const newStatus = transaction.type === TransactionType.LOAN 
         ? TransactionStatus.COMPLETED 
         : TransactionStatus.CANCELLED;
 

@@ -8,7 +8,8 @@ export class PaymentsService {
   constructor(private prisma: PrismaService) {}
 
   async registerPayment(data: CreatePaymentDto) {
-    const { userId, amount, method } = data;
+    const { userId, amount } = data;
+    const method = data.method ?? 'Efectivo';
 
     return this.prisma.$transaction(async (tx) => {
       const activeTransactions = await tx.transaction.findMany({

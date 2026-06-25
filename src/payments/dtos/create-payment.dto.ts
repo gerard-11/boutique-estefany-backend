@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsNumber, IsUUID, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class CreatePaymentDto {
   @IsUUID('4', { message: 'El ID del usuario debe ser un UUID válido' })
@@ -10,6 +17,7 @@ export class CreatePaymentDto {
   @IsNotEmpty({ message: 'El monto es obligatorio' })
   amount: number;
 
-  @IsNotEmpty({ message: 'El método de pago es obligatorio' })
-  method: string; // Efectivo, Transferencia, etc.
+  @IsString({ message: 'El método de pago debe ser texto' })
+  @IsOptional()
+  method?: string; // Efectivo por defecto, o cualquier texto libre.
 }

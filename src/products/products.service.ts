@@ -38,7 +38,7 @@ export class ProductsService {
     } | null = null;
 
     if (activeTransaction) {
-      currentStatus = activeTransaction.type; // PRESTAMO, APARTADO, CREDITO_SEMANAL
+      currentStatus = activeTransaction.type; // LOAN, LAYAWAY, WEEKLY_CREDIT
       assignedTo = {
         id: activeTransaction.user.id,
         name: `${activeTransaction.user.firstName} ${activeTransaction.user.lastName || ''}`.trim(),

@@ -135,10 +135,10 @@ model InventoryMovement {
 }
 
 enum TransactionType {
-  CONTADO
-  CREDITO_SEMANAL
-  APARTADO
-  PRESTAMO
+  CASH
+  WEEKLY_CREDIT
+  LAYAWAY
+  LOAN
 }
 
 enum TransactionStatus {
