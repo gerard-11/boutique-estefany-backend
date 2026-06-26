@@ -135,10 +135,6 @@ export class ProductsService {
       where: { barcode },
       include: {
         category: { include: { department: true } },
-        deliveryRequestItems: {
-          where: { deliveryRequest: { status: 'PENDING' } },
-          include: { deliveryRequest: { include: { user: true } } },
-        },
         transactionItems: {
           include: {
             transaction: { include: { user: true } },

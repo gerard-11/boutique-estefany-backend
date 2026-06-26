@@ -42,8 +42,7 @@ Al escanear un producto para venta física (`GET /products/barcode/:code`):
 *   Motor de Devoluciones (Algoritmo de Reparto).
 *   Registro de Pagos Semanales.
 
-### Fase 4: Fidelización (Wishlist & Delivery)
-*   Solicitud de Pedidos a Domicilio.
+### Fase 4: Fidelizacion (Wishlist)
 *   Rastreo de Wishlist para el cliente.
 
 ## 4. Modo de Trabajo (Mentoría)

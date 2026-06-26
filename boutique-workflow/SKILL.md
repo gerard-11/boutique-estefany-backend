@@ -33,23 +33,18 @@ La aplicación requiere el consentimiento del cliente (Máquina de estados):
   - `Category` (ej. Zapatos, Jeans, Sudaderas, Perfumes). 
 - El ingreso de mercancía se hace **escaneando el código de barras** con la cámara del dispositivo Admin.
 
-## 5. Pedidos a Domicilio (NUEVO)
-- Los clientes pueden solicitar prendas a domicilio (ya que es un área local).
-- Se genera un `DeliveryRequest`. El admin revisa y puede Aceptar o Rechazar.
-
-## 6. Sincronización Offline y Base de Datos
+## 5. Sincronización Offline y Base de Datos
 - El administrador puede trabajar sin internet (Offline).
 - NestJS recibirá las peticiones de sincronización en lote una vez que recupere la conexión.
 
-## 7. Estado del Proyecto (Bitácora)
+## 6. Estado del Proyecto (Bitácora)
 - **[2026-05-26] Infraestructura Base:** Docker, PostgreSQL y Prisma 7 configurados.
 - **[2026-05-26] Autenticación:** Firebase Admin SDK integrado y RolesGuard implementado.
 - **[2026-05-27] Catálogo:** Departamentos, Categorías y Productos con soporte para tallas y marcas.
 - **[2026-05-28] Transacciones & Wallet:** Implementado Monedero digital y Algoritmo de Reparto Múltiple para devoluciones.
 - **[2026-05-28] Finanzas:** Infraestructura de Costos (`costAtTime`) y trazabilidad completa en bitácora de movimientos para cálculo de Capital.
 
-## 8. Próximos Pasos (Pendientes)
+## 7. Próximos Pasos (Pendientes)
 1. **Módulo DashboardReport:** Centralizar cálculos de Capital Total, Mermas y "Dinero Volando".
 2. **Gestión de Niveles de Cliente:** Endpoints para cambio manual de nivel con notificaciones.
-3. **Módulo de Pedidos a Domicilio:** Flujo completo de `DeliveryRequest`.
-4. **Optimización de Dashboard:** Implementar estrategia de cache para cálculos financieros.
+3. **Optimización de Dashboard:** Implementar estrategia de cache para cálculos financieros.
