@@ -250,7 +250,7 @@ export class TransactionsService {
               (sum, p) => sum + p.amount,
               0,
             );
-            if (totalPaid >= otherTx.totalAmount) {
+            if (otherTx.totalAmount - totalPaid <= 0.01) {
               await tx.transaction.update({
                 where: { id: otherTx.id },
                 data: { status: TransactionStatus.COMPLETED },

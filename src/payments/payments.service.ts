@@ -5,6 +5,8 @@ import { TransactionStatus } from '@prisma/client';
 
 @Injectable()
 export class PaymentsService {
+  private readonly paymentTolerance = 0.01;
+
   constructor(private prisma: PrismaService) {}
 
   async registerPayment(data: CreatePaymentDto) {
@@ -19,7 +21,7 @@ export class PaymentsService {
             in: [TransactionStatus.ACTIVE, TransactionStatus.PENDING_APPROVAL],
           },
         },
-        include: { payments: true },
+        include: { payments: true, items: true },
         orderBy: { createdAt: 'asc' }, // Primero las más viejas
       });
 
@@ -29,6 +31,11 @@ export class PaymentsService {
       }
 
       let remainingMoney = amount;
+      const completedTransactions: {
+        id: string;
+        type: string;
+        productIds: string[];
+      }[] = [];
 
       for (const transaction of activeTransactions) {
         if (remainingMoney <= 0) break;
@@ -53,11 +60,18 @@ export class PaymentsService {
         });
 
         remainingMoney -= paymentForThisTx;
+        const remainingDebt = debtForThisTx - paymentForThisTx;
 
-        if (paymentForThisTx === debtForThisTx) {
+        if (remainingDebt <= this.paymentTolerance) {
           await tx.transaction.update({
             where: { id: transaction.id },
             data: { status: TransactionStatus.COMPLETED },
+          });
+
+          completedTransactions.push({
+            id: transaction.id,
+            type: transaction.type,
+            productIds: transaction.items.map((item) => item.productId),
           });
         }
       }
@@ -70,6 +84,7 @@ export class PaymentsService {
         success: true,
         amountProcessed: amount - remainingMoney,
         change: remainingMoney > 0 ? remainingMoney : 0,
+        completedTransactions,
       };
     });
   }
