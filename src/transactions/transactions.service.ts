@@ -44,6 +44,24 @@ export class TransactionsService {
             ...(productIds.length ? [{ id: { in: productIds } }] : []),
           ],
         },
+        include: {
+          transactionItems: {
+            where: {
+              transaction: {
+                userId,
+                type: TransactionType.LAYAWAY,
+                status: TransactionStatus.ACTIVE,
+              },
+            },
+            include: {
+              transaction: {
+                include: {
+                  items: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       const foundBarcodes = new Set(products.map((product) => product.barcode));
@@ -61,8 +79,45 @@ export class TransactionsService {
         );
       }
 
+      const canUseLayawayStock =
+        type === TransactionType.CASH ||
+        type === TransactionType.WEEKLY_CREDIT;
+      const layawayItemsByProductId = new Map(
+        products
+          .map((product) => [product.id, product.transactionItems[0]] as const)
+          .filter(
+            (entry): entry is [string, NonNullable<(typeof entry)[1]>] =>
+              Boolean(entry[1]),
+          ),
+      );
+      const convertedLayawayIds = new Set(
+        Array.from(layawayItemsByProductId.values()).map(
+          (item) => item.transactionId,
+        ),
+      );
+      const convertedProductIds = new Set(products.map((product) => product.id));
+
+      for (const layawayId of convertedLayawayIds) {
+        const layaway = Array.from(layawayItemsByProductId.values()).find(
+          (item) => item.transactionId === layawayId,
+        )?.transaction;
+
+        const hasUnconvertedItems = layaway?.items.some(
+          (item) => !convertedProductIds.has(item.productId),
+        );
+
+        if (hasUnconvertedItems) {
+          throw new BadRequestException(
+            'Para vender un apartado con varias prendas, incluya todas las prendas del apartado en la venta',
+          );
+        }
+      }
+
       for (const product of products) {
-        if (product.stock <= 0) {
+        const isReservedForThisSale =
+          canUseLayawayStock && layawayItemsByProductId.has(product.id);
+
+        if (product.stock <= 0 && !isReservedForThisSale) {
           throw new BadRequestException(
             `El producto ${product.name} no tiene stock disponible`,
           );
@@ -113,22 +168,36 @@ export class TransactionsService {
         },
       });
 
-      for (const product of products) {
-        // Restar stock
-        await tx.product.update({
-          where: { id: product.id },
-          data: { stock: { decrement: 1 } },
+      for (const layawayId of convertedLayawayIds) {
+        await tx.transaction.update({
+          where: { id: layawayId },
+          data: { status: TransactionStatus.COMPLETED },
         });
+      }
+
+      for (const product of products) {
+        const isReservedForThisSale =
+          canUseLayawayStock && layawayItemsByProductId.has(product.id);
+
+        if (!isReservedForThisSale) {
+          // Restar stock
+          await tx.product.update({
+            where: { id: product.id },
+            data: { stock: { decrement: 1 } },
+          });
+        }
 
         // Anotar en la bitácora
         await tx.inventoryMovement.create({
           data: {
             productId: product.id,
-            quantity: -1, // Salida
+            quantity: isReservedForThisSale ? 0 : -1, // Salida
             type: MovementType.VENTA,
             costAtTime: product.cost,
             priceAtTime: product.price,
-            reason: `Transaction ID: ${transaction.id}`,
+            reason: isReservedForThisSale
+              ? `Venta desde apartado. Transaction ID: ${transaction.id}`
+              : `Transaction ID: ${transaction.id}`,
           },
         });
       }
