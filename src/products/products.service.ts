@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dtos/product.dto';
-import { Product, MovementType, TransactionStatus } from '@prisma/client';
+import {
+  Product,
+  MovementType,
+  TransactionStatus,
+  TransactionType,
+} from '@prisma/client';
 
 @Injectable()
 export class ProductsService {
@@ -17,25 +22,38 @@ export class ProductsService {
       ),
     )?.transaction || null;
 
-    // 2. Si no hay transacción activa pero stock es 0, buscar la última venta completada
-    const lastTransaction =
-      !activeTransaction && product.stock === 0
-        ? await this.prisma.transactionItem
-            .findFirst({
-              where: { productId: product.id },
-              include: { transaction: { include: { user: true } } },
-              orderBy: { transaction: { createdAt: 'desc' } },
-            })
-            .then((ti) => ti?.transaction)
-        : null;
+    // 2. Conservar la última venta/asignación completada como historial permanente.
+    const lastTransaction = !activeTransaction
+      ? await this.prisma.transactionItem
+          .findFirst({
+            where: {
+              productId: product.id,
+              transaction: {
+                status: TransactionStatus.COMPLETED,
+                type: {
+                  in: [
+                    TransactionType.CASH,
+                    TransactionType.WEEKLY_CREDIT,
+                    TransactionType.LAYAWAY,
+                  ],
+                },
+              },
+            },
+            include: { transaction: { include: { user: true } } },
+            orderBy: { transaction: { createdAt: 'desc' } },
+          })
+          .then((ti) => ti?.transaction)
+      : null;
 
     let currentStatus = 'AVAILABLE';
-    let assignedTo: {
+    type ProductAssignment = {
       id: string;
       name: string;
       transactionId: string;
       status: string;
-    } | null = null;
+    };
+    let assignedTo: ProductAssignment | null = null;
+    let lastSale: ProductAssignment | null = null;
 
     if (activeTransaction) {
       currentStatus = activeTransaction.type; // LOAN, LAYAWAY, WEEKLY_CREDIT
@@ -46,13 +64,17 @@ export class ProductsService {
         status: activeTransaction.status,
       };
     } else if (lastTransaction) {
-      currentStatus = 'SOLD';
-      assignedTo = {
+      lastSale = {
         id: lastTransaction.user.id,
         name: `${lastTransaction.user.firstName} ${lastTransaction.user.lastName || ''}`.trim(),
         transactionId: lastTransaction.id,
         status: 'COMPLETED',
       };
+      assignedTo = lastSale;
+
+      if (product.stock <= 0) {
+        currentStatus = 'SOLD';
+      }
     } else if (product.stock <= 0) {
       currentStatus = 'UNAVAILABLE';
     }
@@ -65,6 +87,9 @@ export class ProductsService {
         canSell: product.stock > 0 && !activeTransaction,
         canLoan: product.stock > 0 && currentStatus === 'AVAILABLE',
         canApart: product.stock > 0 && currentStatus === 'AVAILABLE',
+        history: {
+          lastSale,
+        },
       },
     };
   }

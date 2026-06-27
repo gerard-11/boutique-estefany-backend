@@ -34,6 +34,14 @@ export class UsersController {
     return this.usersService.getEnrichedProfile(id);
   }
 
+  // Historial de pagos y cuentas activas (Solo Admin)
+  @Get('clients/:id/payment-history')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  getPaymentHistory(@Param('id') id: string) {
+    return this.usersService.getPaymentHistory(id);
+  }
+
   // Actualizar datos financieros (Solo Admin)
   @Patch('clients/:id/financial')
   @UseGuards(FirebaseAuthGuard, RolesGuard)

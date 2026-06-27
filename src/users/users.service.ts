@@ -164,4 +164,126 @@ export class UsersService {
       },
     };
   }
+
+  async getPaymentHistory(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const activeAccounts = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        status: {
+          in: [TransactionStatus.ACTIVE, TransactionStatus.PENDING_APPROVAL],
+        },
+      },
+      include: {
+        payments: {
+          orderBy: { paymentDate: 'desc' },
+        },
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        transaction: {
+          userId,
+        },
+      },
+      include: {
+        transaction: {
+          include: {
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { paymentDate: 'desc' },
+    });
+
+    return {
+      activeAccounts: activeAccounts.map((transaction) => {
+        const totalPaid = transaction.payments.reduce(
+          (sum, payment) => sum + payment.amount,
+          0,
+        );
+        const remainingBalance = Math.max(
+          0,
+          transaction.totalAmount - totalPaid,
+        );
+
+        return {
+          id: transaction.id,
+          type: transaction.type,
+          status: transaction.status,
+          originalAmount: transaction.originalAmount,
+          discountPercentage: transaction.discountPercentage,
+          totalAmount: transaction.totalAmount,
+          totalPaid,
+          remainingBalance,
+          weeklyPayment: transaction.weeklyPayment,
+          expiresAt: transaction.expiresAt,
+          createdAt: transaction.createdAt,
+          updatedAt: transaction.updatedAt,
+          products: transaction.items.map((item) => ({
+            id: item.product.id,
+            barcode: item.product.barcode,
+            name: item.product.name,
+            color: item.product.color,
+            size: item.product.size,
+            brand: item.product.brand,
+            imageUrl: item.product.imageUrl,
+            quantity: item.quantity,
+            priceAtTime: item.priceAtTime,
+            costAtTime: item.costAtTime,
+          })),
+          payments: transaction.payments.map((payment) => ({
+            id: payment.id,
+            amount: payment.amount,
+            method: payment.method,
+            paymentDate: payment.paymentDate,
+          })),
+        };
+      }),
+      payments: payments.map((payment) => ({
+        id: payment.id,
+        amount: payment.amount,
+        method: payment.method,
+        paymentDate: payment.paymentDate,
+        transaction: {
+          id: payment.transaction.id,
+          type: payment.transaction.type,
+          status: payment.transaction.status,
+          totalAmount: payment.transaction.totalAmount,
+          createdAt: payment.transaction.createdAt,
+          products: payment.transaction.items.map((item) => ({
+            id: item.product.id,
+            barcode: item.product.barcode,
+            name: item.product.name,
+            color: item.product.color,
+            size: item.product.size,
+            brand: item.product.brand,
+            imageUrl: item.product.imageUrl,
+            quantity: item.quantity,
+            priceAtTime: item.priceAtTime,
+          })),
+        },
+      })),
+    };
+  }
+
 }

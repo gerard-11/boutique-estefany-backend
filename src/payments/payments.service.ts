@@ -36,6 +36,13 @@ export class PaymentsService {
         type: string;
         productIds: string[];
       }[] = [];
+      const appliedPayments: {
+        id: string;
+        transactionId: string;
+        amount: number;
+        method: string;
+        paymentDate: Date;
+      }[] = [];
 
       for (const transaction of activeTransactions) {
         if (remainingMoney <= 0) break;
@@ -51,12 +58,20 @@ export class PaymentsService {
         const paymentForThisTx = Math.min(remainingMoney, debtForThisTx);
 
         // Creamos el registro del pago vinculado a esta transacción específica
-        await tx.payment.create({
+        const payment = await tx.payment.create({
           data: {
             transactionId: transaction.id,
             amount: paymentForThisTx,
             method,
           },
+        });
+
+        appliedPayments.push({
+          id: payment.id,
+          transactionId: payment.transactionId,
+          amount: payment.amount,
+          method: payment.method,
+          paymentDate: payment.paymentDate,
         });
 
         remainingMoney -= paymentForThisTx;
@@ -76,14 +91,17 @@ export class PaymentsService {
         }
       }
 
+      const lastPaymentDate = new Date();
       await tx.user.update({
         where: { id: userId },
-        data: { lastPaymentDate: new Date() },
+        data: { lastPaymentDate },
       });
       return {
         success: true,
         amountProcessed: amount - remainingMoney,
         change: remainingMoney > 0 ? remainingMoney : 0,
+        paymentDate: appliedPayments[0]?.paymentDate ?? lastPaymentDate,
+        appliedPayments,
         completedTransactions,
       };
     });
