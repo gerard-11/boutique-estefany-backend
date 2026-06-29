@@ -36,21 +36,8 @@ model User {
   // Relaciones
   transactions     Transaction[]
   walletMovements  WalletMovement[]
-  wishlistItems    Wishlist[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model Wishlist {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  createdAt DateTime @default(now())
-
-  @@unique([userId, productId])
 }
 
 enum WalletMovementType {
@@ -106,8 +93,6 @@ model Product {
 
   transactionItems   TransactionItem[]
   inventoryMovements InventoryMovement[] // Relación con bitácora
-  wishlistItems      Wishlist[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

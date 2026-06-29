@@ -12,7 +12,6 @@ import { ProductsModule } from './products/products.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { PaymentsModule } from './payments/payments.module';
 import { DashboardReportModule } from './dashboard-report/dashboard-report.module';
-import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -29,7 +28,6 @@ import { WishlistModule } from './wishlist/wishlist.module';
     TransactionsModule,
     PaymentsModule,
     DashboardReportModule,
-    WishlistModule,
   ],
   controllers: [AppController],
   providers: [AppService],
