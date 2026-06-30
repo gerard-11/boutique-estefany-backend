@@ -10,9 +10,9 @@ import {
 
 export class CreateProductDto {
   @IsString({ message: 'El código de barras debe ser texto' })
-  @IsNotEmpty({ message: 'El código de barras es obligatorio' })
+  @IsOptional()
   @MaxLength(100)
-  barcode: string;
+  barcode?: string;
 
   @IsString({ message: 'El nombre debe ser texto' })
   @IsNotEmpty({ message: 'El nombre es obligatorio' })

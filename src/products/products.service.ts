@@ -12,6 +12,23 @@ import {
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
+  private async generateInternalBarcode(tx: any): Promise<string> {
+    let barcode: string;
+    let existingProduct: Product | null;
+
+    do {
+      const datePart = new Date()
+        .toISOString()
+        .slice(0, 10)
+        .replace(/-/g, '');
+      const randomPart = Math.random().toString(36).slice(2, 8).toUpperCase();
+      barcode = `BE-${datePart}-${randomPart}`;
+      existingProduct = await tx.product.findUnique({ where: { barcode } });
+    } while (existingProduct);
+
+    return barcode;
+  }
+
   private async enrichProductData(product: any) {
     if (!product) return null;
 
@@ -221,9 +238,13 @@ export class ProductsService {
       }
 
       const { categoryName, departmentName, departmentId, ...productData } = data;
+      const barcode =
+        data.barcode?.trim() || (await this.generateInternalBarcode(tx));
+
       const product = await tx.product.create({
         data: {
           ...productData,
+          barcode,
           categoryId: categoryId as string,
         },
       });
