@@ -79,7 +79,7 @@ export class UsersService {
     id: string,
     data: UpdateUserFinancialDto,
   ): Promise<User> {
-    const { reason, ...updateData } = data;
+    const { reason, ...updateData } = data;                   
     const user = await this.prisma.user.update({
       where: { id },
       data: updateData,
@@ -215,6 +215,34 @@ export class UsersService {
       orderBy: { paymentDate: 'desc' },
     });
 
+    const transactions = await this.prisma.transaction.findMany({
+      where: { userId },
+      include: {
+        payments: {
+          orderBy: { paymentDate: 'desc' },
+        },
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const mapProduct = (item: any) => ({
+      id: item.product.id,
+      barcode: item.product.barcode,
+      name: item.product.name,
+      color: item.product.color,
+      size: item.product.size,
+      brand: item.product.brand,
+      imageUrl: item.product.imageUrl,
+      quantity: item.quantity,
+      priceAtTime: item.priceAtTime,
+      costAtTime: item.costAtTime,
+    });
+
     return {
       activeAccounts: activeAccounts.map((transaction) => {
         const totalPaid = transaction.payments.reduce(
@@ -239,18 +267,39 @@ export class UsersService {
           expiresAt: transaction.expiresAt,
           createdAt: transaction.createdAt,
           updatedAt: transaction.updatedAt,
-          products: transaction.items.map((item) => ({
-            id: item.product.id,
-            barcode: item.product.barcode,
-            name: item.product.name,
-            color: item.product.color,
-            size: item.product.size,
-            brand: item.product.brand,
-            imageUrl: item.product.imageUrl,
-            quantity: item.quantity,
-            priceAtTime: item.priceAtTime,
-            costAtTime: item.costAtTime,
+          products: transaction.items.map(mapProduct),
+          payments: transaction.payments.map((payment) => ({
+            id: payment.id,
+            amount: payment.amount,
+            method: payment.method,
+            paymentDate: payment.paymentDate,
           })),
+        };
+      }),
+      transactions: transactions.map((transaction) => {
+        const totalPaid = transaction.payments.reduce(
+          (sum, payment) => sum + payment.amount,
+          0,
+        );
+        const remainingBalance = Math.max(
+          0,
+          transaction.totalAmount - totalPaid,
+        );
+
+        return {
+          id: transaction.id,
+          type: transaction.type,
+          status: transaction.status,
+          originalAmount: transaction.originalAmount,
+          discountPercentage: transaction.discountPercentage,
+          totalAmount: transaction.totalAmount,
+          totalPaid,
+          remainingBalance,
+          weeklyPayment: transaction.weeklyPayment,
+          expiresAt: transaction.expiresAt,
+          createdAt: transaction.createdAt,
+          updatedAt: transaction.updatedAt,
+          products: transaction.items.map(mapProduct),
           payments: transaction.payments.map((payment) => ({
             id: payment.id,
             amount: payment.amount,
@@ -270,17 +319,7 @@ export class UsersService {
           status: payment.transaction.status,
           totalAmount: payment.transaction.totalAmount,
           createdAt: payment.transaction.createdAt,
-          products: payment.transaction.items.map((item) => ({
-            id: item.product.id,
-            barcode: item.product.barcode,
-            name: item.product.name,
-            color: item.product.color,
-            size: item.product.size,
-            brand: item.product.brand,
-            imageUrl: item.product.imageUrl,
-            quantity: item.quantity,
-            priceAtTime: item.priceAtTime,
-          })),
+          products: payment.transaction.items.map(mapProduct),
         },
       })),
     };
