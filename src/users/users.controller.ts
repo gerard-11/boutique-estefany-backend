@@ -22,8 +22,18 @@ export class UsersController {
   @Get('clients')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  findAllClients(@Query('level') level?: Level, @Query('search') search?: string) {
-    return this.usersService.findAllClients({ level, searchTerm: search });
+  findAllClients(
+    @Query('level') level?: Level,
+    @Query('search') search?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('order') order?: string,
+  ) {
+    return this.usersService.findAllClients({
+      level,
+      searchTerm: search,
+      sortBy,
+      order,
+    });
   }
 
   // Ver perfil financiero detallado (Admin y el propio Cliente)

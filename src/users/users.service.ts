@@ -54,24 +54,76 @@ export class UsersService {
   async findAllClients(filters?: {
     level?: Level;
     searchTerm?: string;
-  }): Promise<User[]> {
-    const { level, searchTerm } = filters || {};
-    return this.prisma.user.findMany({
-      where: {
-        role: Role.CLIENT,
-        ...(level ? { level } : {}),
-        ...(searchTerm
-          ? {
-              OR: [
-                { firstName: { contains: searchTerm, mode: 'insensitive' } },
-                { lastName: { contains: searchTerm, mode: 'insensitive' } },
-                { email: { contains: searchTerm, mode: 'insensitive' } },
+    sortBy?: string;
+    order?: string;
+  }): Promise<any[]> {
+    const { level, searchTerm, sortBy, order } = filters || {};
+    const normalizedOrder = order === 'desc' ? 'desc' : 'asc';
+    const where = {
+      role: Role.CLIENT,
+      ...(level ? { level } : {}),
+      ...(searchTerm
+        ? {
+            OR: [
+              { firstName: { contains: searchTerm, mode: 'insensitive' as const } },
+              { lastName: { contains: searchTerm, mode: 'insensitive' as const } },
+              { email: { contains: searchTerm, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
+
+    if (sortBy !== 'currentDebt') {
+      return this.prisma.user.findMany({
+        where,
+        orderBy: { lastPaymentDate: normalizedOrder },
+      });
+    }
+
+    const clients = await this.prisma.user.findMany({
+      where,
+      include: {
+        transactions: {
+          where: {
+            status: {
+              in: [
+                TransactionStatus.ACTIVE,
+                TransactionStatus.PENDING_APPROVAL,
               ],
-            }
-          : {}),
+            },
+          },
+          include: {
+            payments: true,
+          },
+        },
       },
-      orderBy: { lastPaymentDate: 'asc' },
     });
+
+    return clients
+      .map((client) => {
+        const currentDebt = client.transactions.reduce((total, transaction) => {
+          const totalPaid = transaction.payments.reduce(
+            (sum, payment) => sum + payment.amount,
+            0,
+          );
+          const remaining = transaction.totalAmount - totalPaid;
+          return remaining > 0 ? total + remaining : total;
+        }, 0);
+        const { transactions, ...clientData } = client;
+
+        return {
+          ...clientData,
+          financialSummary: {
+            currentDebt,
+            availableCredit: Math.max(0, client.creditLimit - currentDebt),
+          },
+        };
+      })
+      .sort((a, b) =>
+        normalizedOrder === 'desc'
+          ? b.financialSummary.currentDebt - a.financialSummary.currentDebt
+          : a.financialSummary.currentDebt - b.financialSummary.currentDebt,
+      );
   }
 
   // Actualizar Nivel o Límite de Crédito (Solo Admin)
