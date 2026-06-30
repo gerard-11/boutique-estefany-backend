@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { DashboardReportService } from './dashboard-report.service';
 import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -14,5 +14,15 @@ export class DashboardReportController {
   @Roles(Role.ADMIN)
   getSummary() {
     return this.dashboardService.getFinancialSummary();
+  }
+
+  @Get('monthly-profit')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  getMonthlyProfit(
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+  ) {
+    return this.dashboardService.getMonthlyProfit({ year, month });
   }
 }

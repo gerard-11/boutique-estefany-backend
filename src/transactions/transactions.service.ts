@@ -169,6 +169,16 @@ export class TransactionsService {
         },
       });
 
+      if (type === TransactionType.CASH) {
+        await tx.payment.create({
+          data: {
+            transactionId: transaction.id,
+            amount: totalAmount,
+            method: 'EFECTIVO',
+          },
+        });
+      }
+
       for (const reservedTransactionId of convertedReservedTransactionIds) {
         await tx.transaction.update({
           where: { id: reservedTransactionId },
