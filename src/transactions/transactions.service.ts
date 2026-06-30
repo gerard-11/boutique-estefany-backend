@@ -49,7 +49,7 @@ export class TransactionsService {
             where: {
               transaction: {
                 userId,
-                type: TransactionType.LAYAWAY,
+                type: { in: [TransactionType.LAYAWAY, TransactionType.LOAN] },
                 status: TransactionStatus.ACTIVE,
               },
             },
@@ -79,43 +79,45 @@ export class TransactionsService {
         );
       }
 
-      const canUseLayawayStock =
-        type === TransactionType.CASH ||
-        type === TransactionType.WEEKLY_CREDIT;
-      const layawayItemsByProductId = new Map(
+      const canUseReservedStock =
+        type === TransactionType.CASH || type === TransactionType.WEEKLY_CREDIT;
+      const reservedItemsByProductId = new Map(
         products
           .map((product) => [product.id, product.transactionItems[0]] as const)
-          .filter(
-            (entry): entry is [string, NonNullable<(typeof entry)[1]>] =>
-              Boolean(entry[1]),
+          .filter((entry): entry is [string, NonNullable<(typeof entry)[1]>] =>
+            Boolean(entry[1]),
           ),
       );
-      const convertedLayawayIds = new Set(
-        Array.from(layawayItemsByProductId.values()).map(
+      const convertedReservedTransactionIds = new Set(
+        Array.from(reservedItemsByProductId.values()).map(
           (item) => item.transactionId,
         ),
       );
-      const convertedProductIds = new Set(products.map((product) => product.id));
+      const convertedProductIds = new Set(
+        products.map((product) => product.id),
+      );
 
-      for (const layawayId of convertedLayawayIds) {
-        const layaway = Array.from(layawayItemsByProductId.values()).find(
-          (item) => item.transactionId === layawayId,
+      for (const reservedTransactionId of convertedReservedTransactionIds) {
+        const reservedTransaction = Array.from(
+          reservedItemsByProductId.values(),
+        ).find(
+          (item) => item.transactionId === reservedTransactionId,
         )?.transaction;
 
-        const hasUnconvertedItems = layaway?.items.some(
+        const hasUnconvertedItems = reservedTransaction?.items.some(
           (item) => !convertedProductIds.has(item.productId),
         );
 
         if (hasUnconvertedItems) {
           throw new BadRequestException(
-            'Para vender un apartado con varias prendas, incluya todas las prendas del apartado en la venta',
+            'Para vender una prenda reservada con varias prendas, incluya todas las prendas de la transacción original en la venta',
           );
         }
       }
 
       for (const product of products) {
         const isReservedForThisSale =
-          canUseLayawayStock && layawayItemsByProductId.has(product.id);
+          canUseReservedStock && reservedItemsByProductId.has(product.id);
 
         if (product.stock <= 0 && !isReservedForThisSale) {
           throw new BadRequestException(
@@ -129,8 +131,7 @@ export class TransactionsService {
       const totalAmount = originalAmount * (1 - discountPercentage / 100);
 
       let status: TransactionStatus = TransactionStatus.PENDING_APPROVAL;
-      if (type === TransactionType.CASH)
-        status = TransactionStatus.COMPLETED;
+      if (type === TransactionType.CASH) status = TransactionStatus.COMPLETED;
       if (
         forceApproval ||
         type === TransactionType.LAYAWAY ||
@@ -168,16 +169,16 @@ export class TransactionsService {
         },
       });
 
-      for (const layawayId of convertedLayawayIds) {
+      for (const reservedTransactionId of convertedReservedTransactionIds) {
         await tx.transaction.update({
-          where: { id: layawayId },
+          where: { id: reservedTransactionId },
           data: { status: TransactionStatus.COMPLETED },
         });
       }
 
       for (const product of products) {
         const isReservedForThisSale =
-          canUseLayawayStock && layawayItemsByProductId.has(product.id);
+          canUseReservedStock && reservedItemsByProductId.has(product.id);
 
         if (!isReservedForThisSale) {
           // Restar stock
@@ -196,7 +197,7 @@ export class TransactionsService {
             costAtTime: product.cost,
             priceAtTime: product.price,
             reason: isReservedForThisSale
-              ? `Venta desde apartado. Transaction ID: ${transaction.id}`
+              ? `Venta desde reserva activa. Transaction ID: ${transaction.id}`
               : `Transaction ID: ${transaction.id}`,
           },
         });
@@ -358,10 +359,12 @@ export class TransactionsService {
       });
 
       if (!product) throw new NotFoundException('Producto no encontrado');
-      
+
       const activeItem = product.transactionItems[0];
       if (!activeItem) {
-        throw new BadRequestException('Esta prenda no tiene un préstamo o apartado activo');
+        throw new BadRequestException(
+          'Esta prenda no tiene un préstamo o apartado activo',
+        );
       }
 
       const transaction = activeItem.transaction;
@@ -384,9 +387,10 @@ export class TransactionsService {
 
       // 4. Finalizar transacción
       // Si es loan, se marca como completado. Si es layaway, se cancela/libera stock.
-      const newStatus = transaction.type === TransactionType.LOAN 
-        ? TransactionStatus.COMPLETED 
-        : TransactionStatus.CANCELLED;
+      const newStatus =
+        transaction.type === TransactionType.LOAN
+          ? TransactionStatus.COMPLETED
+          : TransactionStatus.CANCELLED;
 
       return tx.transaction.update({
         where: { id: transaction.id },
