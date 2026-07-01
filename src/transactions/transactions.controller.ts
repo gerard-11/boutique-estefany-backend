@@ -33,6 +33,12 @@ export class TransactionsController {
     return this.transactionsService.requestReturn(id, req.user.id);
   }
 
+  @Patch(':id/accept')
+  @UseGuards(FirebaseAuthGuard)
+  acceptTransaction(@Param('id') id: string, @Request() req: RequestWithUser) {
+    return this.transactionsService.acceptTransaction(id, req.user.id);
+  }
+
   @Patch(':id/confirm-return')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

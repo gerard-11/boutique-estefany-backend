@@ -244,6 +244,27 @@ export class TransactionsService {
     });
   }
 
+  async acceptTransaction(id: string, userId: string) {
+    const transaction = await this.prisma.transaction.findUnique({
+      where: { id },
+    });
+
+    if (!transaction || transaction.userId !== userId) {
+      throw new NotFoundException('Transacción no encontrada');
+    }
+
+    if (transaction.status !== TransactionStatus.PENDING_APPROVAL) {
+      throw new BadRequestException(
+        'Solo se pueden aceptar transacciones pendientes de aprobación',
+      );
+    }
+
+    return this.prisma.transaction.update({
+      where: { id },
+      data: { status: TransactionStatus.ACTIVE },
+    });
+  }
+
   async confirmReturn(id: string, data: ProcessReturnDto) {
     return this.prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.findUnique({
