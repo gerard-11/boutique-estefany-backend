@@ -294,85 +294,62 @@ export class UsersService {
       costAtTime: item.costAtTime,
     });
 
+    const mapTransaction = (transaction: any) => {
+      const totalPaid = transaction.payments.reduce(
+        (sum: number, payment: any) => sum + payment.amount,
+        0,
+      );
+      const remainingBalance = Math.max(
+        0,
+        transaction.totalAmount - totalPaid,
+      );
+
+      return {
+        id: transaction.id,
+        type: transaction.type,
+        status: transaction.status,
+        originalAmount: transaction.originalAmount,
+        discountPercentage: transaction.discountPercentage,
+        totalAmount: transaction.totalAmount,
+        totalPaid,
+        remainingBalance,
+        weeklyPayment: transaction.weeklyPayment,
+        expiresAt: transaction.expiresAt,
+        createdAt: transaction.createdAt,
+        updatedAt: transaction.updatedAt,
+        products: transaction.items.map(mapProduct),
+        payments: transaction.payments.map((payment: any) => ({
+          id: payment.id,
+          amount: payment.amount,
+          method: payment.method,
+          paymentDate: payment.paymentDate,
+        })),
+      };
+    };
+
+    const purchaseHistory = transactions.map(mapTransaction);
+    const activeAccountHistory = activeAccounts.map(mapTransaction);
+    const paymentHistory = payments.map((payment) => ({
+      id: payment.id,
+      amount: payment.amount,
+      method: payment.method,
+      paymentDate: payment.paymentDate,
+      transaction: {
+        id: payment.transaction.id,
+        type: payment.transaction.type,
+        status: payment.transaction.status,
+        totalAmount: payment.transaction.totalAmount,
+        createdAt: payment.transaction.createdAt,
+        products: payment.transaction.items.map(mapProduct),
+      },
+    }));
+
     return {
-      activeAccounts: activeAccounts.map((transaction) => {
-        const totalPaid = transaction.payments.reduce(
-          (sum, payment) => sum + payment.amount,
-          0,
-        );
-        const remainingBalance = Math.max(
-          0,
-          transaction.totalAmount - totalPaid,
-        );
-
-        return {
-          id: transaction.id,
-          type: transaction.type,
-          status: transaction.status,
-          originalAmount: transaction.originalAmount,
-          discountPercentage: transaction.discountPercentage,
-          totalAmount: transaction.totalAmount,
-          totalPaid,
-          remainingBalance,
-          weeklyPayment: transaction.weeklyPayment,
-          expiresAt: transaction.expiresAt,
-          createdAt: transaction.createdAt,
-          updatedAt: transaction.updatedAt,
-          products: transaction.items.map(mapProduct),
-          payments: transaction.payments.map((payment) => ({
-            id: payment.id,
-            amount: payment.amount,
-            method: payment.method,
-            paymentDate: payment.paymentDate,
-          })),
-        };
-      }),
-      transactions: transactions.map((transaction) => {
-        const totalPaid = transaction.payments.reduce(
-          (sum, payment) => sum + payment.amount,
-          0,
-        );
-        const remainingBalance = Math.max(
-          0,
-          transaction.totalAmount - totalPaid,
-        );
-
-        return {
-          id: transaction.id,
-          type: transaction.type,
-          status: transaction.status,
-          originalAmount: transaction.originalAmount,
-          discountPercentage: transaction.discountPercentage,
-          totalAmount: transaction.totalAmount,
-          totalPaid,
-          remainingBalance,
-          weeklyPayment: transaction.weeklyPayment,
-          expiresAt: transaction.expiresAt,
-          createdAt: transaction.createdAt,
-          updatedAt: transaction.updatedAt,
-          products: transaction.items.map(mapProduct),
-          payments: transaction.payments.map((payment) => ({
-            id: payment.id,
-            amount: payment.amount,
-            method: payment.method,
-            paymentDate: payment.paymentDate,
-          })),
-        };
-      }),
-      payments: payments.map((payment) => ({
-        id: payment.id,
-        amount: payment.amount,
-        method: payment.method,
-        paymentDate: payment.paymentDate,
-        transaction: {
-          id: payment.transaction.id,
-          type: payment.transaction.type,
-          status: payment.transaction.status,
-          totalAmount: payment.transaction.totalAmount,
-          createdAt: payment.transaction.createdAt,
-          products: payment.transaction.items.map(mapProduct),
-        },
-      })),
+      activeAccounts: activeAccountHistory,
+      purchaseHistory,
+      paymentHistory,
+      transactions: purchaseHistory,
+      payments: paymentHistory,
     };
   }
 

@@ -45,6 +45,13 @@ export class UsersController {
     return this.usersService.getEnrichedProfile(req.user.id);
   }
 
+  // Historial de pagos y cuentas activas (Cliente autenticado)
+  @Get('me/payment-history')
+  @UseGuards(FirebaseAuthGuard)
+  getMyPaymentHistory(@Request() req: RequestWithUser) {
+    return this.usersService.getPaymentHistory(req.user.id);
+  }
+
   // Ver perfil financiero detallado de un cliente (Solo Admin)
   @Get('clients/:id/profile')
   @UseGuards(FirebaseAuthGuard, RolesGuard)
