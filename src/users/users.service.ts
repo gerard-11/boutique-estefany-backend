@@ -148,7 +148,6 @@ export class UsersService {
     return user;
   }
 
-  // El "Objeto Enriquecido": Calcula la deuda y el semáforo de pago al vuelo
   async getEnrichedProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

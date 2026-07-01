@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
@@ -13,6 +14,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role, Level } from '@prisma/client';
 import { UpdateUserFinancialDto } from './dtos/update-user-financial.dto';
+import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 
 @Controller('users')
 export class UsersController {
@@ -36,11 +38,18 @@ export class UsersController {
     });
   }
 
-  // Ver perfil financiero detallado (Admin y el propio Cliente)
-  @Get('clients/:id/profile')
+  // Ver mi perfil financiero detallado (Cliente autenticado)
+  @Get('me/profile')
   @UseGuards(FirebaseAuthGuard)
-  async getProfile(@Param('id') id: string) {
-   
+  getMyProfile(@Request() req: RequestWithUser) {
+    return this.usersService.getEnrichedProfile(req.user.id);
+  }
+
+  // Ver perfil financiero detallado de un cliente (Solo Admin)
+  @Get('clients/:id/profile')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  getProfile(@Param('id') id: string) {
     return this.usersService.getEnrichedProfile(id);
   }
 
