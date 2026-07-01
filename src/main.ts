@@ -4,19 +4,32 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const corsOrigins = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
   // Activamos las validaciones globales
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Elimina campos que no estén en el DTO
+      whitelist: true, // Elimina campos que no esten en el DTO
       forbidNonWhitelisted: true, // Lanza error si hay campos no permitidos
-      transform: true, // Convierte tipos automáticamente
+      transform: true, // Convierte tipos automaticamente
     }),
   );
 
-  // Configuración de CORS
+  // Configuracion de CORS
   app.enableCors({
-    origin: true, // En desarrollo permite cualquier origen, o puedes especificar una lista
+    origin:
+      corsOrigins.length === 0
+        ? true
+        : (origin, callback) => {
+            if (!origin || corsOrigins.includes(origin)) {
+              return callback(null, true);
+            }
+
+            return callback(new Error('Origin not allowed by CORS'), false);
+          },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
