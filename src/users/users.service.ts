@@ -30,8 +30,10 @@ export class UsersService {
     });
     const isFirstAdmin = !adminExists;
 
-    return this.prisma.user.create({
-      data: {
+    return this.prisma.user.upsert({
+      where: { firebaseUid },
+      update: {},
+      create: {
         firebaseUid,
         email,
         firstName,
