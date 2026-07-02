@@ -7,6 +7,7 @@ import * as path from 'path';
 @Injectable()
 export class FirebaseAuthService implements OnModuleInit {
   private firebaseApp: admin.app.App;
+  private firebaseProjectId?: string;
 
   constructor(private configService: ConfigService) {}
 
@@ -19,14 +20,18 @@ export class FirebaseAuthService implements OnModuleInit {
     );
 
     if (serviceAccountJson) {
-      return admin.credential.cert(JSON.parse(serviceAccountJson));
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      this.firebaseProjectId = serviceAccount.project_id;
+      return admin.credential.cert(serviceAccount);
     }
 
     if (serviceAccountBase64) {
       const decoded = Buffer.from(serviceAccountBase64, 'base64').toString(
         'utf8',
       );
-      return admin.credential.cert(JSON.parse(decoded));
+      const serviceAccount = JSON.parse(decoded);
+      this.firebaseProjectId = serviceAccount.project_id;
+      return admin.credential.cert(serviceAccount);
     }
 
     const serviceAccountPath = path.join(
@@ -35,7 +40,11 @@ export class FirebaseAuthService implements OnModuleInit {
     );
 
     if (fs.existsSync(serviceAccountPath)) {
-      return admin.credential.cert(serviceAccountPath);
+      const serviceAccount = JSON.parse(
+        fs.readFileSync(serviceAccountPath, 'utf8'),
+      );
+      this.firebaseProjectId = serviceAccount.project_id;
+      return admin.credential.cert(serviceAccount);
     }
 
     throw new Error(
@@ -56,5 +65,9 @@ export class FirebaseAuthService implements OnModuleInit {
 
   getAuth() {
     return this.firebaseApp.auth();
+  }
+
+  getProjectId() {
+    return this.firebaseProjectId;
   }
 }

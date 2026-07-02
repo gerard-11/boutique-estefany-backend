@@ -27,36 +27,44 @@ export class FirebaseAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const authHeader = request.headers.authorization;
+    const startsBearer = authHeader?.startsWith('Bearer ');
+    const token = startsBearer ? authHeader!.split(' ')[1] : undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('auth header exists:', !!authHeader);
+    console.log('starts Bearer:', startsBearer);
+    console.log('token length:', token?.length);
+    console.log('firebase project:', this.firebaseAuthService.getProjectId());
+
+    if (!authHeader || !startsBearer || !token) {
       throw new UnauthorizedException('No token provided');
     }
-
-    const token = authHeader.split(' ')[1];
 
     try {
       let decodedToken: DecodedToken;
 
-      // --- BYPASS DE DESARROLLO ---
-      if (token === 'dev-test-admin') {
-        decodedToken = {
-          uid: 'dev-admin-123',
-          email: 'admin@boutique.com',
-          name: 'Admin de Pruebas',
-          picture: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
-        };
-      } else {
-        const firebaseToken = await this.firebaseAuthService
+      let firebaseToken;
+
+      try {
+        firebaseToken = await this.firebaseAuthService
           .getAuth()
           .verifyIdToken(token);
-
-        decodedToken = {
-          uid: firebaseToken.uid,
-          email: firebaseToken.email,
-          name: firebaseToken.name,
-          picture: firebaseToken.picture,
-        };
+        console.log('decoded uid:', firebaseToken.uid);
+        console.log('decoded aud:', firebaseToken.aud);
+      } catch (error) {
+        console.error(
+          'Firebase verifyIdToken failed:',
+          error.code,
+          error.message,
+        );
+        throw error;
       }
+
+      decodedToken = {
+        uid: firebaseToken.uid,
+        email: firebaseToken.email,
+        name: firebaseToken.name,
+        picture: firebaseToken.picture,
+      };
 
       let user: User | null = await this.usersService.findByFirebaseUid(
         decodedToken.uid,
@@ -80,6 +88,10 @@ export class FirebaseAuthGuard implements CanActivate {
       request.user = user;
       return true;
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
       console.error('Auth Error:', (error as Error).message);
       throw new UnauthorizedException('Invalid token');
     }
